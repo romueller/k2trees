@@ -5,6 +5,7 @@
 
 #include "K2Tree.hpp"
 #include "StaticBasicRectangularTree.hpp"
+#include "StaticRowTree.hpp"
 #include "Utility.hpp"
 
 template<typename E>
@@ -1156,6 +1157,19 @@ public:
     }
 
 
+    // note: can "invalidate" the data structure (containsLink() probably won't work correctly afterwards)
+    void setNull(size_type i, size_type j) override {
+
+        auto pis = determineIndices(i, j);
+        auto p = partitions_.getElement(pis.partition);
+
+        if (p != partitions_.getNull()) {
+            p->setNull(pis.row, pis.col);
+        }
+
+    }
+
+
 private:
     size_type hr_;
     size_type hc_;
@@ -1927,6 +1941,19 @@ public:
 
             }
 
+        }
+
+    }
+
+
+    // note: can "invalidate" the data structure (containsLink() probably won't work correctly afterwards)
+    void setNull(size_type i, size_type j) override {
+
+        auto pis = determineIndices(i, j);
+        auto p = partitions_.getElement(pis.partition);
+
+        if (p != partitions_.getNull()) {
+            p->setNull(pis.row, pis.col);
         }
 
     }

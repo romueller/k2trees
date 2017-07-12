@@ -418,6 +418,8 @@ public:
 
     }
 
+    virtual void setNull(size_type i) = 0;
+
 };
 
 #endif //K2TREES_ROWTREE_HPP

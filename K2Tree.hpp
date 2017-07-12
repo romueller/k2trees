@@ -937,6 +937,8 @@ public:
 
     }
 
+    virtual void setNull(size_type i, size_type j) = 0;
+
 
     // method aliases using "relation nomenclature"
 

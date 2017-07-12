@@ -287,6 +287,12 @@ public:
     }
 
 
+    // note: can "invalidate" the data structure (containsLink() probably won't work correctly afterwards)
+    void setNull(size_type i) override {
+        setInit(i);
+    }
+
+
 private:
     bit_vector_type T_;
     std::vector<elem_type> L_;
@@ -903,6 +909,29 @@ private:
 
     }
 
+
+    /* getElement() */
+
+    void setInit(size_type q) {
+
+        if (!L_.empty()) {
+            set(nPrime_ / k_, q % (nPrime_ / k_), q / (nPrime_ / k_));
+        }
+
+    }
+
+    void set(size_type n, size_type q, size_type z) {
+
+        if (z >= T_.size()) {
+            L_[z - T_.size()] = null_;
+        } else {
+            if (T_[z]) {
+                set(n / k_, q % (n / k_), R_.rank(z + 1) * k_ + q / (n / k_));
+            }
+        }
+
+    }
+
 };
 
 template<>
@@ -1192,6 +1221,12 @@ public:
 
         }
 
+    }
+
+
+    // note: can "invalidate" the data structure (containsLink() probably won't work correctly afterwards)
+    void setNull(size_type i) override {
+        setInit(i);
     }
 
 
@@ -1676,6 +1711,29 @@ private:
 
             return false;
 
+        }
+
+    }
+
+
+    /* getElement() */
+
+    void setInit(size_type q) {
+
+        if (!L_.empty()) {
+            set(nPrime_ / k_, q % (nPrime_ / k_), q / (nPrime_ / k_));
+        }
+
+    }
+
+    void set(size_type n, size_type q, size_type z) {
+
+        if (z >= T_.size()) {
+            L_[z - T_.size()] = null_;
+        } else {
+            if (T_[z]) {
+                set(n / k_, q % (n / k_), R_.rank(z + 1) * k_ + q / (n / k_));
+            }
         }
 
     }

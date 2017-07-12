@@ -476,6 +476,11 @@ public:
     }
 
 
+    // note: can "invalidate" the data structure (containsLink() probably won't work correctly afterwards)
+    void setNull(size_type i, size_type j) override {
+        setInit(i, j);
+    }
+
 private:
     bit_vector_type T_;
     std::vector<elem_type> L_;
@@ -1538,6 +1543,35 @@ private:
 
     }
 
+
+    /* setNull() */
+
+    void setInit(size_type p, size_type q) {
+
+        size_type k = (upperH_ > 0) ? upperK_ : lowerK_;
+
+        if (!L_.empty()) {
+            set(nPrime_ / k, p % (nPrime_ / k), q % (nPrime_ / k), (p / (nPrime_ / k)) * k + q / (nPrime_ / k), 1);
+        }
+
+    }
+
+    void set(size_type n, size_type p, size_type q, size_type z, size_type l) {
+
+        if (z >= T_.size()) {
+            L_[z - T_.size()] = null_;
+        } else {
+
+            auto k = (l < upperH_) ? upperK_ : lowerK_;
+
+            if (T_[z]) {
+                set(n / k, p % (n / k), q % (n / k), (l >= upperH_) * upperLength_ + (R_.rank(z + 1) - (l >= upperH_) * (upperOnes_ + 1)) * k * k + (p / (n / k)) * k + q / (n / k), l + 1);
+            }
+
+        }
+
+    }
+
 };
 
 template<>
@@ -2022,6 +2056,12 @@ public:
 
         }
 
+    }
+
+
+    // note: can "invalidate" the data structure (containsLink() probably won't work correctly afterwards)
+    void setNull(size_type i, size_type j) override {
+        setInit(i, j);
     }
 
 
@@ -2709,6 +2749,35 @@ private:
             }
 
             return false;
+
+        }
+
+    }
+
+
+    /* setNull() */
+
+    void setInit(size_type p, size_type q) {
+
+        size_type k = (upperH_ > 0) ? upperK_ : lowerK_;
+
+        if (!L_.empty()) {
+            set(nPrime_ / k, p % (nPrime_ / k), q % (nPrime_ / k), (p / (nPrime_ / k)) * k + q / (nPrime_ / k), 1);
+        }
+
+    }
+
+    void set(size_type n, size_type p, size_type q, size_type z, size_type l) {
+
+        if (z >= T_.size()) {
+            L_[z - T_.size()] = null_;
+        } else {
+
+            auto k = (l < upperH_) ? upperK_ : lowerK_;
+
+            if (T_[z]) {
+                set(n / k, p % (n / k), q % (n / k), (l >= upperH_) * upperLength_ + (R_.rank(z + 1) - (l >= upperH_) * (upperOnes_ + 1)) * k * k + (p / (n / k)) * k + q / (n / k), l + 1);
+            }
 
         }
 

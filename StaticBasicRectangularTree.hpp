@@ -535,6 +535,12 @@ public:
     }
 
 
+    // note: can "invalidate" the data structure (containsLink() probably won't work correctly afterwards)
+    void setNull(size_type i, size_type j) override {
+        setInit(i, j);
+    }
+
+
 private:
     bit_vector_type T_;
     std::vector<elem_type> L_;
@@ -1115,11 +1121,11 @@ private:
 
     /* getElement() */
 
-    bool getInit(size_type p, size_type q) {
+    elem_type getInit(size_type p, size_type q) {
         return (L_.empty()) ? null_ : get(numRows_ / kr_, numCols_ / kc_, p % (numRows_ / kr_), q % (numCols_ / kc_), (p / (numRows_ / kr_)) * kc_ + q / (numCols_ / kc_));
     }
 
-    bool get(size_type numRows, size_type numCols, size_type p, size_type q, size_type z) {
+    elem_type get(size_type numRows, size_type numCols, size_type p, size_type q, size_type z) {
 
         if (z >= T_.size()) {
             return L_[z - T_.size()];
@@ -1688,6 +1694,31 @@ private:
 
     }
 
+
+    /* setNull() */
+
+    void setInit(size_type p, size_type q) {
+
+        if (!L_.empty()) {
+            set(numRows_ / kr_, numCols_ / kc_, p % (numRows_ / kr_), q % (numCols_ / kc_), (p / (numRows_ / kr_)) * kc_ + q / (numCols_ / kc_));
+        }
+
+    }
+
+    void set(size_type numRows, size_type numCols, size_type p, size_type q, size_type z) {
+
+        if (z >= T_.size()) {
+            L_[z - T_.size()] = null_;
+        } else {
+
+            if (T_[z]) {
+                set(numRows / kr_, numCols / kc_, p % (numRows / kr_), q % (numCols / kc_), R_.rank(z + 1) * kr_ * kc_ + (p / (numRows / kr_)) * kc_ + q / (numCols / kc_));
+            }
+
+        }
+
+    }
+
 };
 
 
@@ -2242,6 +2273,12 @@ public:
 
         }
 
+    }
+
+
+    // note: can "invalidate" the data structure (containsLink() probably won't work correctly afterwards)
+    void setNull(size_type i, size_type j) override {
+        setInit(i, j);
     }
 
 
@@ -3060,6 +3097,31 @@ private:
             }
 
             return false;
+
+        }
+
+    }
+
+
+    /* setNull() */
+
+    void setInit(size_type p, size_type q) {
+
+        if (!L_.empty()) {
+            set(numRows_ / kr_, numCols_ / kc_, p % (numRows_ / kr_), q % (numCols_ / kc_), (p / (numRows_ / kr_)) * kc_ + q / (numCols_ / kc_));
+        }
+
+    }
+
+    void set(size_type numRows, size_type numCols, size_type p, size_type q, size_type z) {
+
+        if (z >= T_.size()) {
+            L_[z - T_.size()] = null_;
+        } else {
+
+            if (T_[z]) {
+                set(numRows / kr_, numCols / kc_, p % (numRows / kr_), q % (numCols / kc_), R_.rank(z + 1) * kr_ * kc_ + (p / (numRows / kr_)) * kc_ + q / (numCols / kc_));
+            }
 
         }
 
