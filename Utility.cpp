@@ -1,7 +1,11 @@
 #include "Utility.hpp"
 
 size_type logK(const size_type n, const size_type b) {
-    return size_type(ceil(log2(n) / log2(b)));
+
+    size_type pow = 0;
+    for (size_type val = 1; val < n; val *= b, pow++) { }
+    return pow;
+
 }
 
 bool isAllZero(const std::vector<bool>& v) {

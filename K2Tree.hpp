@@ -55,6 +55,8 @@ public:
     virtual size_type countElements() = 0;
 
 
+    virtual K2Tree* clone() const = 0;
+
     virtual void print(bool all = false) = 0;
 
     virtual bool compare(matrix_type& mat, elem_type null, bool silent) {

@@ -154,7 +154,7 @@ public:
 
     }
 
-    BasicRowTree(list_type& pairs, const size_type k, const elem_type null = elem_type()) {std::cout<<"General version!"<<std::endl;
+    BasicRowTree(list_type& pairs, const size_type k, const elem_type null = elem_type()) {
 
         null_ = null;
 
@@ -236,7 +236,11 @@ public:
     }
 
     std::vector<size_type> getAllPositions() override {
-        return getPositionsInRange(0, nPrime_ - 1);
+//        return getPositionsInRange(0, nPrime_ - 1);
+        std::vector<size_type> positions;
+        fullRangePosIterative(positions);
+        return positions;
+
     }
 
     list_type getAllValuedPositions() override {
@@ -257,6 +261,11 @@ public:
 
         return res;
 
+    }
+
+
+    BasicRowTree* clone() const override {
+        return new BasicRowTree<elem_type>(*this);
     }
 
 
@@ -749,6 +758,80 @@ private:
 
     /* getPositionsInRange() */
 
+    void fullRangePosIterative(std::vector<size_type>& elems) {
+
+        if (L_.empty()) return;
+
+        std::queue<SubrowInfo> queue, nextLevelQueue;
+        size_type lenT = T_.size();
+
+        if (lenT == 0) {
+
+            for (size_type i = 0; i < nPrime_; i++) {
+                if (L_[i] != null_) {
+                    elems.push_back(i);
+                }
+            }
+
+        } else {
+
+            // rangeInit
+            size_type n = nPrime_/ k_;
+
+            for (size_type z = 0, dq = 0; z < k_; z++, dq += n) {
+                queue.push(SubrowInfo(dq, z));
+            }
+
+            // range
+            n /= k_;
+            for (; n > 1; n /= k_) {
+
+                while (!queue.empty()) {
+
+                    auto& cur = queue.front();
+
+                    if (T_[cur.z]) {
+
+                        auto y = R_.rank(cur.z + 1) * k_;
+
+                        for (size_type j = 0, newDq = cur.dq; j < k_; j++, newDq += n, y++) {
+                            nextLevelQueue.push(SubrowInfo(newDq, y));
+                        }
+
+                    }
+
+                    queue.pop();
+
+                }
+
+                queue.swap(nextLevelQueue);
+
+            }
+
+            while (!queue.empty()) {
+
+                auto& cur = queue.front();
+
+                if (T_[cur.z]) {
+
+                    auto y = R_.rank(cur.z + 1) * k_ - lenT;
+
+                    for (size_type j = 0, newDq = cur.dq; j < k_; j++, newDq += n, y++) {
+                        if (L_[y] != null_) {
+                            elems.push_back(newDq);
+                        }
+                    }
+
+                }
+
+                queue.pop();
+
+            }
+
+        }
+
+    }
+
     void rangePosInit(std::vector<size_type>& elems, size_type l, size_type r) {
 
         if (!L_.empty()) {
@@ -1113,6 +1196,27 @@ public:
 
     }
 
+    BasicRowTree(const std::vector<std::pair<size_type, size_type>>::iterator& first, const std::vector<std::pair<size_type, size_type>>::iterator& last, const size_type k) {
+
+        null_ = false;
+
+        size_type maxCol = 0;
+        for (auto iter = first; iter != last; iter++) {
+            maxCol = std::max(maxCol, iter->second);
+        }
+
+        k_ = k;
+        h_ = std::max((size_type)1, logK(maxCol + 1, k_));
+        nPrime_ = size_type(pow(k_, h_));
+
+        if (last - first != 0) {
+            buildFromListsInplace(first, last);
+        }
+
+        R_ = rank_type(&T_);
+
+    }
+
 
     size_type getH() {
         return h_;
@@ -1173,7 +1277,11 @@ public:
     }
 
     std::vector<size_type> getAllPositions() override {
-        return getPositionsInRange(0, nPrime_ - 1);
+//        return getPositionsInRange(0, nPrime_ - 1);
+        std::vector<size_type> positions;
+        fullRangeIterative(positions);
+        return positions;
+
     }
 
     std::vector<std::pair<size_type, elem_type>> getAllValuedPositions() override {
@@ -1194,6 +1302,11 @@ public:
 
         return res;
 
+    }
+
+
+    BasicRowTree* clone() const override {
+        return new BasicRowTree<elem_type>(*this);
     }
 
 
@@ -1589,6 +1702,117 @@ private:
 
     }
 
+    /* helper methods for inplace construction from single list of pairs given as iterators */
+
+    size_type computeKey(const std::vector<std::pair<size_type, size_type>>::iterator::value_type& pair, const Subproblem& sp, size_type width) {
+        return (pair.second - sp.firstCol) / width;
+    }
+
+    void countingSort(const std::vector<std::pair<size_type, size_type>>::iterator& first, std::vector<std::pair<size_type, size_type>>& intervals, const Subproblem& sp, size_type width, size_type sup) {
+
+        std::vector<size_type> counts(sup);
+
+        // determine key frequencies
+        for (auto i = sp.left; i < sp.right; i++) {
+            counts[computeKey(first[i], sp, width)]++;
+        }
+
+        // determine starting index for each key
+        size_type total = 0;
+        size_type tmp;
+
+        for (auto key = 0; key < sup; key++) {
+
+            tmp = counts[key];
+            counts[key] = total;
+            total += tmp;
+
+            intervals[key].first = counts[key];
+            intervals[key].second = total;
+
+        }
+
+        // reorder pairs of current subproblem
+        std::vector<std::pair<size_type, size_type>> tmpPairs(sp.right - sp.left + 1);
+        for (auto i = sp.left; i < sp.right; i++) {
+
+            tmpPairs[counts[computeKey(first[i], sp, width)]] = first[i];
+            counts[computeKey(first[i], sp, width)]++;
+
+        }
+
+        for (auto i = sp.left; i < sp.right; i++) {
+            first[i] = tmpPairs[i - sp.left];
+        }
+
+    }
+
+    void buildFromListsInplace(const std::vector<std::pair<size_type, size_type>>::iterator& first, const std::vector<std::pair<size_type, size_type>>::iterator& last) {// 3.3.5
+
+        std::queue<Subproblem> queue;
+        Subproblem sp;
+        size_type S;
+        std::vector<std::pair<size_type, size_type>> intervals(k_);
+        std::vector<bool> T, L;
+        std::vector<elem_type> appToL;
+
+        queue.push(Subproblem(0, 0, 0, nPrime_ - 1, 0, last - first));
+
+        while (!queue.empty()) {
+
+            sp = queue.front();
+            queue.pop();
+
+            S = sp.lastCol - sp.firstCol + 1;
+
+            if (S > k_) {
+
+                countingSort(first, intervals, sp, S / k_, k_);
+
+                for (auto i = 0; i < k_; i++) {
+
+                    if (intervals[i].first < intervals[i].second) {
+
+                        T.push_back(true);
+                        queue.push(Subproblem(
+                                0,
+                                0,
+                                sp.firstCol + (i % k_) * (S / k_),
+                                sp.firstCol + (i % k_ + 1) * (S / k_) - 1,
+                                sp.left + intervals[i].first,
+                                sp.left + intervals[i].second
+                        ));
+
+                    } else {
+                        T.push_back(false);
+                    }
+
+                }
+
+            } else {
+
+                appToL = std::vector<elem_type>(k_);
+
+                for (auto i = sp.left; i < sp.right; i++) {
+                    appToL[first[i].second - sp.firstCol] = true;
+                }
+
+                L.insert(L.end(), appToL.begin(), appToL.end());
+
+            }
+
+        }
+
+        L_ = bit_vector_type(L.size());
+        std::move(L.begin(), L.end(), L_.begin());
+        L.clear();
+        L.shrink_to_fit();
+
+        T_ = bit_vector_type(T.size());
+        std::move(T.begin(), T.end(), T_.begin());
+
+    }
+
 
     /* isNotNull() */
 
@@ -1607,6 +1831,80 @@ private:
     }
 
     /* getRange() */
+
+    void fullRangeIterative(std::vector<size_type>& elems) {
+
+        if (L_.empty()) return;
+
+        std::queue<SubrowInfo> queue, nextLevelQueue;
+        size_type lenT = T_.size();
+
+        if (lenT == 0) {
+
+            for (size_type i = 0; i < nPrime_; i++) {
+                if (L_[i]) {
+                    elems.push_back(i);
+                }
+            }
+
+        } else {
+
+            // rangeInit
+            size_type n = nPrime_/ k_;
+
+            for (size_type z = 0, dq = 0; z < k_; z++, dq += n) {
+                queue.push(SubrowInfo(dq, z));
+            }
+
+            // range
+            n /= k_;
+            for (; n > 1; n /= k_) {
+
+                while (!queue.empty()) {
+
+                    auto& cur = queue.front();
+
+                    if (T_[cur.z]) {
+
+                        auto y = R_.rank(cur.z + 1) * k_;
+
+                        for (size_type j = 0, newDq = cur.dq; j < k_; j++, newDq += n, y++) {
+                            nextLevelQueue.push(SubrowInfo(newDq, y));
+                        }
+
+                    }
+
+                    queue.pop();
+
+                }
+
+                queue.swap(nextLevelQueue);
+
+            }
+
+            while (!queue.empty()) {
+
+                auto& cur = queue.front();
+
+                if (T_[cur.z]) {
+
+                    auto y = R_.rank(cur.z + 1) * k_ - lenT;
+
+                    for (size_type j = 0, newDq = cur.dq; j < k_; j++, newDq += n, y++) {
+                        if (L_[y]) {
+                            elems.push_back(newDq);
+                        }
+                    }
+
+                }
+
+                queue.pop();
+
+            }
+
+        }
+
+    }
 
     void rangeInit(std::vector<size_type>& elems, size_type l, size_type r) {
 

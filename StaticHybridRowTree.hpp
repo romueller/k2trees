@@ -334,7 +334,11 @@ public:
     }
 
     std::vector<size_type> getAllPositions() override {
-        return getPositionsInRange(0, nPrime_ - 1);
+//        return getPositionsInRange(0, nPrime_ - 1);
+        std::vector<size_type> positions;
+        fullRangePosIterative(positions);
+        return positions;
+
     }
 
     list_type getAllValuedPositions() override {
@@ -355,6 +359,11 @@ public:
 
         return res;
 
+    }
+
+
+    HybridRowTree* clone() const override {
+        return new HybridRowTree<elem_type>(*this);
     }
 
 
@@ -915,6 +924,89 @@ private:
 
     /* getPositionsInRange() */
 
+    void fullRangePosIterative(std::vector<size_type>& elems) {
+
+        if (L_.empty()) return;
+
+        std::queue<SubrowInfo> queue, nextLevelQueue;
+        size_type lenT = T_.size();
+        size_type k = (upperH_ > 0) ? upperK_ : lowerK_;
+
+        if (lenT == 0) {
+
+            for (size_type i = 0; i < nPrime_; i++) {
+                if (L_[i] != null_) {
+                    elems.push_back(i);
+                }
+            }
+
+        } else {
+
+            // rangeInit
+            size_type n = nPrime_/ k;
+            size_type l = 1;
+
+            for (size_type z = 0, dq = 0; z < k; z++, dq += n) {
+                queue.push(SubrowInfo(dq, z));
+            }
+
+            // range
+            k = (l < upperH_) ? upperK_ : lowerK_;
+            n /= k;
+            for (; n > 1; l++, k = (l < upperH_) ? upperK_ : lowerK_, n /= k) {
+
+                size_type a = (l >= upperH_) * upperLength_;
+                size_type b = (l >= upperH_) * (upperOnes_ + 1);
+
+                while (!queue.empty()) {
+
+                    auto& cur = queue.front();
+
+                    if (T_[cur.z]) {
+
+                        auto y = a + (R_.rank(cur.z + 1) - b) * k;
+
+                        for (size_type j = 0, newDq = cur.dq; j < k; j++, newDq += n, y++) {
+                            nextLevelQueue.push(SubrowInfo(newDq, y));
+                        }
+
+                    }
+
+                    queue.pop();
+
+                }
+
+                queue.swap(nextLevelQueue);
+
+            }
+
+            size_type a = (l >= upperH_) * upperLength_;
+            size_type b = (l >= upperH_) * (upperOnes_ + 1);
+
+            while (!queue.empty()) {
+
+                auto& cur = queue.front();
+
+                if (T_[cur.z]) {
+
+                    auto y = a + (R_.rank(cur.z + 1) - b) * k - lenT;
+
+                    for (size_type j = 0, newDq = cur.dq; j < k; j++, newDq += n, y++) {
+                        if (L_[y] != null_) {
+                            elems.push_back(newDq);
+                        }
+                    }
+
+                }
+
+                queue.pop();
+
+            }
+
+        }
+
+    }
+
     void rangePosInit(std::vector<size_type>& elems, size_type l, size_type r) {
 
         if (!L_.empty()) {
@@ -1378,6 +1470,43 @@ public:
 
     }
 
+    HybridRowTree(const std::vector<std::pair<size_type, size_type>>::iterator& first, const std::vector<std::pair<size_type, size_type>>::iterator& last, const size_type upperK, const size_type upperH, const size_type lowerK) {
+
+        // at least one lowerK-level
+        // at least zero upperK-levels but never more than upperH upperK-levels
+
+        null_ = false;
+
+        upperK_ = upperK;
+        lowerK_ = lowerK;
+
+        size_type maxIndex = 0;
+        for (auto iter = first; iter != last; iter++) {
+            maxIndex = std::max({maxIndex, iter->second});
+        }
+        maxIndex++; // for number of columns
+
+        nPrime_ = size_type(ceil((1.0 * maxIndex) / lowerK_));
+        upperH_ = std::min(upperH, std::max((size_type)1, logK(nPrime_, upperK_)));
+
+        nPrime_ = size_type(pow(upperK_, upperH_));
+        h_ = upperH_;
+        do {
+
+            nPrime_ *= lowerK_;
+            h_++;
+
+        } while (nPrime_ < maxIndex);
+
+
+        if (last - first != 0) {
+            buildFromListsInplace(first, last);
+        }
+
+        R_ = rank_type(&T_);
+
+    }
+
 
     size_type getUpperK() {
         return upperK_;
@@ -1454,7 +1583,11 @@ public:
     }
 
     std::vector<size_type> getAllPositions() override {
-        return getPositionsInRange(0, nPrime_ - 1);
+//        return getPositionsInRange(0, nPrime_ - 1);
+        std::vector<size_type> positions;
+        fullRangeIterative(positions);
+        return positions;
+
     }
 
     std::vector<std::pair<size_type, elem_type>> getAllValuedPositions() override {
@@ -1475,6 +1608,11 @@ public:
 
         return res;
 
+    }
+
+
+    HybridRowTree* clone() const override {
+        return new HybridRowTree<elem_type>(*this);
     }
 
 
@@ -1917,6 +2055,129 @@ private:
 
     }
 
+    /* helper methods for inplace construction from single list of pairs given as iterators */
+
+    size_type computeKey(const std::vector<std::pair<size_type, size_type>>::iterator::value_type& pair, const Subproblem& sp, size_type width) {
+        return (pair.second - sp.firstCol) / width;
+    }
+
+    void countingSort(const std::vector<std::pair<size_type, size_type>>::iterator& first, std::vector<std::pair<size_type, size_type>>& intervals, const Subproblem& sp, size_type width, size_type sup) {
+
+        std::vector<size_type> counts(sup);
+
+        // determine key frequencies
+        for (auto i = sp.left; i < sp.right; i++) {
+            counts[computeKey(first[i], sp, width)]++;
+        }
+
+        // determine starting index for each key
+        size_type total = 0;
+        size_type tmp;
+
+        for (auto key = 0; key < sup; key++) {
+
+            tmp = counts[key];
+            counts[key] = total;
+            total += tmp;
+
+            intervals[key].first = counts[key];
+            intervals[key].second = total;
+
+        }
+
+        // reorder pairs of current subproblem
+        std::vector<std::pair<size_type, size_type>> tmpPairs(sp.right - sp.left + 1);
+        for (auto i = sp.left; i < sp.right; i++) {
+
+            tmpPairs[counts[computeKey(first[i], sp, width)]] = first[i];
+            counts[computeKey(first[i], sp, width)]++;
+
+        }
+
+        for (auto i = sp.left; i < sp.right; i++) {
+            first[i] = tmpPairs[i - sp.left];
+        }
+
+    }
+
+    void buildFromListsInplace(const std::vector<std::pair<size_type, size_type>>::iterator& first, const std::vector<std::pair<size_type, size_type>>::iterator& last) {// 3.3.5
+
+        std::queue<std::pair<Subproblem, size_type>> queue;
+        std::pair<Subproblem, size_type> sp;
+        size_type k, S;
+        std::vector<std::pair<size_type, size_type>> intervals(std::max(upperK_, lowerK_) * std::max(upperK_, lowerK_));
+        std::vector<bool> T, L;
+        bit_vector_type appToL;
+
+        upperOnes_ = 0;
+        upperLength_ = 0;
+
+        queue.push(std::make_pair(Subproblem(0, 0, 0, nPrime_ - 1, 0, last - first), 0));
+
+        while (!queue.empty()) {
+
+            sp = queue.front();
+            queue.pop();
+
+            k = (sp.second < upperH_) ? upperK_ : lowerK_;
+            S = sp.first.lastCol - sp.first.firstCol + 1;
+
+            if (S > k) {
+
+                countingSort(first, intervals, sp.first, S / k, k);
+
+                for (auto i = 0; i < k; i++) {
+
+                    if (intervals[i].first < intervals[i].second) {
+
+                        T.push_back(true);
+                        queue.push(std::make_pair(
+                                Subproblem(
+                                        0,
+                                        0,
+                                        sp.first.firstCol + (i % k) * (S / k),
+                                        sp.first.firstCol + (i % k + 1) * (S / k) - 1,
+                                        sp.first.left + intervals[i].first,
+                                        sp.first.left + intervals[i].second
+                                ),
+                                sp.second + 1
+                        ));
+
+                        upperOnes_+= ((upperH_ > 0) && (sp.second < upperH_ - 1));
+
+                    } else {
+                        T.push_back(false);
+                    }
+
+                }
+
+            } else {
+
+                appToL = bit_vector_type(k);
+
+                for (auto i = sp.first.left; i < sp.first.right; i++) {
+                    appToL[first[i].second - sp.first.firstCol] = true;
+                }
+
+                L.insert(L.end(), appToL.begin(), appToL.end());
+
+            }
+
+        }
+
+        upperLength_ = (upperH_ > 0) ? (upperOnes_ + 1) * upperK_ : 0;
+
+        L_ = bit_vector_type(L.size());
+        std::move(L.begin(), L.end(), L_.begin());
+        L.clear();
+        L.shrink_to_fit();
+
+        T_ = bit_vector_type(T.size());
+        std::move(T.begin(), T.end(), T_.begin());
+
+    }
+
+
 
     /* isNotNull() */
 
@@ -1943,6 +2204,89 @@ private:
     }
 
     /* getRange() */
+
+    void fullRangeIterative(std::vector<size_type>& elems) {
+
+        if (L_.empty()) return;
+
+        std::queue<SubrowInfo> queue, nextLevelQueue;
+        size_type lenT = T_.size();
+        size_type k = (upperH_ > 0) ? upperK_ : lowerK_;
+
+        if (lenT == 0) {
+
+            for (size_type i = 0; i < nPrime_; i++) {
+                if (L_[i]) {
+                    elems.push_back(i);
+                }
+            }
+
+        } else {
+
+            // rangeInit
+            size_type n = nPrime_/ k;
+            size_type l = 1;
+
+            for (size_type z = 0, dq = 0; z < k; z++, dq += n) {
+                queue.push(SubrowInfo(dq, z));
+            }
+
+            // range
+            k = (l < upperH_) ? upperK_ : lowerK_;
+            n /= k;
+            for (; n > 1; l++, k = (l < upperH_) ? upperK_ : lowerK_, n /= k) {
+
+                size_type a = (l >= upperH_) * upperLength_;
+                size_type b = (l >= upperH_) * (upperOnes_ + 1);
+
+                while (!queue.empty()) {
+
+                    auto& cur = queue.front();
+
+                    if (T_[cur.z]) {
+
+                        auto y = a + (R_.rank(cur.z + 1) - b) * k;
+
+                        for (size_type j = 0, newDq = cur.dq; j < k; j++, newDq += n, y++) {
+                            nextLevelQueue.push(SubrowInfo(newDq, y));
+                        }
+
+                    }
+
+                    queue.pop();
+
+                }
+
+                queue.swap(nextLevelQueue);
+
+            }
+
+            size_type a = (l >= upperH_) * upperLength_;
+            size_type b = (l >= upperH_) * (upperOnes_ + 1);
+
+            while (!queue.empty()) {
+
+                auto& cur = queue.front();
+
+                if (T_[cur.z]) {
+
+                    auto y = a + (R_.rank(cur.z + 1) - b) * k - lenT;
+
+                    for (size_type j = 0, newDq = cur.dq; j < k; j++, newDq += n, y++) {
+                        if (L_[y]) {
+                            elems.push_back(newDq);
+                        }
+                    }
+
+                }
+
+                queue.pop();
+
+            }
+
+        }
+
+    }
 
     void rangeInit(std::vector<size_type>& elems, size_type l, size_type r) {
 

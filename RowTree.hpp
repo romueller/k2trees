@@ -38,6 +38,8 @@ public:
     virtual size_type countElements() = 0;
 
 
+    virtual RowTree* clone() const = 0;
+
     virtual void print(bool all = false) = 0;
 
     virtual bool compare(std::vector<elem_type>& v, elem_type null, bool silent) {

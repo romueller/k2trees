@@ -205,6 +205,12 @@ public:
     }
 
 
+    MiniRowTree* clone() const override {
+        return new MiniRowTree<elem_type>(*this);
+    }
+
+
+
     void print(bool all = false) override {
 
         std::cout << "### Parameters ###" << std::endl;
@@ -335,10 +341,23 @@ public:
 
     MiniRowTree(const list_type& list) {
 
-        positions_ = new size_type[list.size()];
+        length_ = list.size();
+        positions_ = new size_type[length_];
 
         for (size_type i = 0; i < list.size(); i++) {
             positions_[i] = list[i];
+        }
+
+    }
+
+    MiniRowTree(const std::vector<std::pair<size_type, size_type>>::iterator& first, const std::vector<std::pair<size_type, size_type>>::iterator& last) {
+
+        length_ = last - first;
+        positions_ = new size_type[length_];
+
+        size_type i = 0;
+        for (auto iter = first; iter != last; iter++, i++) {
+            positions_[i] = iter->second;
         }
 
     }
@@ -440,6 +459,12 @@ public:
     size_type countElements() override {
         return length_;
     }
+
+
+    MiniRowTree* clone() const override {
+        return new MiniRowTree<elem_type>(*this);
+    }
+
 
 
     void print(bool all = false) override {

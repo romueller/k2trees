@@ -21,7 +21,10 @@ public:
 
 
     UnevenKrKcTree() {
-        // nothing to do
+
+        partitions_ = 0;
+        numPartitions_ = 0;
+
     }
 
     UnevenKrKcTree(const UnevenKrKcTree& other) {
@@ -34,7 +37,10 @@ public:
         numCols_ = other.numCols_;
         null_ = other.null_;
 
-        partitions_ = other.partitions_;
+        partitions_ = new KrKcTree<elem_type>*[other.numPartitions_];
+        for (size_type k = 0; k < other.numPartitions_; k++) {
+            partitions_[k] = new KrKcTree<elem_type>(*other.partitions_[k]);
+        }
         partitionSize_ = other.partitionSize_;
         numPartitions_ = other.numPartitions_;
 
@@ -55,7 +61,14 @@ public:
         numCols_ = other.numCols_;
         null_ = other.null_;
 
-        partitions_ = other.partitions_;
+        for (size_type k = 0; k < numPartitions_; k++) {
+            delete partitions_[k];
+        }
+        delete[] partitions_;
+        partitions_ = new KrKcTree<elem_type>*[other.numPartitions_];
+        for (size_type k = 0; k < other.numPartitions_; k++) {
+            partitions_[k] = new KrKcTree<elem_type>(*other.partitions_[k]);
+        }
         partitionSize_ = other.partitionSize_;
         numPartitions_ = other.numPartitions_;
 
@@ -76,15 +89,14 @@ public:
         numCols_ = size_type(pow(kc_, hc_));
 
 
-        std::vector<KrKcTree<elem_type>*> partitions;
-
         if (hc_ > hr_) {
 
             partitionSize_ = size_type(pow(kc_, hr_));
             numPartitions_ = numCols_ / partitionSize_;
+            partitions_ = new KrKcTree<elem_type>*[numPartitions_];
 
             for (size_type i = 0; i < numPartitions_; i++) {
-                partitions.push_back(new KrKcTree<elem_type>(mat, 0, i * partitionSize_, numRows_, partitionSize_, kr_, kc_, null));
+                partitions_[i] = new KrKcTree<elem_type>(mat, 0, i * partitionSize_, numRows_, partitionSize_, kr_, kc_, null);
             }
 
 
@@ -92,9 +104,10 @@ public:
 
             partitionSize_ = size_type(pow(kr_, hc_));
             numPartitions_ = numRows_ / partitionSize_;
+            partitions_ = new KrKcTree<elem_type>*[numPartitions_];
 
             for (size_type j = 0; j < numPartitions_; j++) {
-                partitions.push_back(new KrKcTree<elem_type>(mat, j * partitionSize_, 0, partitionSize_, numCols_, kr_, kc_, null));
+                partitions_[j] = new KrKcTree<elem_type>(mat, j * partitionSize_, 0, partitionSize_, numCols_, kr_, kc_, null);
             }
 
         }
@@ -102,17 +115,15 @@ public:
 #if 1
         for (size_type k = 0; k < numPartitions_; k++) {
 
-            if (partitions[k]->getNumRows() == 0) {
+            if (partitions_[k]->getNumRows() == 0) {
 
-                delete partitions[k];
-                partitions[k] = 0;
+                delete partitions_[k];
+                partitions_[k] = 0;
 
             }
 
         }
 #endif
-
-        partitions_ = BasicRowTree<KrKcTree<elem_type>*>(partitions, 2);
 
     }
 
@@ -136,15 +147,14 @@ public:
         numCols_ = size_type(pow(kc_, hc_));
 
 
-        std::vector<KrKcTree<elem_type>*> partitions;
-
         if (hc_ > hr_) {
 
             partitionSize_ = size_type(pow(kc_, hr_));
             numPartitions_ = numCols_ / partitionSize_;
+            partitions_ = new KrKcTree<elem_type>*[numPartitions_];
 
             for (size_type i = 0; i < numPartitions_; i++) {
-                partitions.push_back(new KrKcTree<elem_type>(lists, 0, i * partitionSize_, numRows_, partitionSize_, kr_, kc_, mode, null));
+                partitions_[i] = new KrKcTree<elem_type>(lists, 0, i * partitionSize_, numRows_, partitionSize_, kr_, kc_, mode, null);
             }
 
 
@@ -152,9 +162,10 @@ public:
 
             partitionSize_ = size_type(pow(kr_, hc_));
             numPartitions_ = numRows_ / partitionSize_;
+            partitions_ = new KrKcTree<elem_type>*[numPartitions_];
 
             for (size_type j = 0; j < numPartitions_; j++) {
-                partitions.push_back(new KrKcTree<elem_type>(lists, j * partitionSize_, 0, partitionSize_, numCols_, kr_, kc_, mode, null));
+                partitions_[j] = new KrKcTree<elem_type>(lists, j * partitionSize_, 0, partitionSize_, numCols_, kr_, kc_, mode, null);
             }
 
         }
@@ -162,17 +173,15 @@ public:
 #if 1
         for (size_type k = 0; k < numPartitions_; k++) {
 
-            if (partitions[k]->getNumRows() == 0) {
+            if (partitions_[k]->getNumRows() == 0) {
 
-                delete partitions[k];
-                partitions[k] = 0;
+                delete partitions_[k];
+                partitions_[k] = 0;
 
             }
 
         }
 #endif
-
-        partitions_ = BasicRowTree<KrKcTree<elem_type>*>(partitions, 2);
 
     }
 
@@ -196,19 +205,18 @@ public:
         numRows_ = size_type(pow(kr_, hr_));
         numCols_ = size_type(pow(kc_, hc_));
 
-        std::vector<KrKcTree<elem_type>*> partitions;
-
         if (hc_ > hr_) {
 
             partitionSize_ = size_type(pow(kc_, hr_));
             numPartitions_ = numCols_ / partitionSize_;
+            partitions_ = new KrKcTree<elem_type>*[numPartitions_];
 
             Subproblem sp(0, numRows_ - 1, 0, numCols_ - 1, 0, pairs.size());
             std::vector<std::pair<size_type, size_type>> intervals(numPartitions_);
             countingSort(pairs, intervals, sp, numRows_, partitionSize_, numPartitions_);
 
             for (size_type i = 0; i < numPartitions_; i++) {
-                partitions.push_back(new KrKcTree<elem_type>(pairs, 0, i * partitionSize_, numRows_, partitionSize_, intervals[i].first, intervals[i].second, kr_, kc_, null));
+                partitions_[i] = new KrKcTree<elem_type>(pairs, 0, i * partitionSize_, numRows_, partitionSize_, intervals[i].first, intervals[i].second, kr_, kc_, null);
             }
 
 
@@ -216,13 +224,14 @@ public:
 
             partitionSize_ = size_type(pow(kr_, hc_));
             numPartitions_ = numRows_ / partitionSize_;
+            partitions_ = new KrKcTree<elem_type>*[numPartitions_];
 
             Subproblem sp(0, numRows_ - 1, 0, numCols_ - 1, 0, pairs.size());
             std::vector<std::pair<size_type, size_type>> intervals(numPartitions_);
             countingSort(pairs, intervals, sp, partitionSize_, numCols_, numPartitions_);
 
             for (size_type j = 0; j < numPartitions_; j++) {
-                partitions.push_back(new KrKcTree<elem_type>(pairs, j * partitionSize_, 0, partitionSize_, numCols_, intervals[j].first, intervals[j].second, kr_, kc_, null));
+                partitions_[j] = new KrKcTree<elem_type>(pairs, j * partitionSize_, 0, partitionSize_, numCols_, intervals[j].first, intervals[j].second, kr_, kc_, null);
             }
 
         }
@@ -230,28 +239,24 @@ public:
 #if 1
         for (size_type k = 0; k < numPartitions_; k++) {
 
-            if (partitions[k]->getNumRows() == 0) {
+            if (partitions_[k]->getNumRows() == 0) {
 
-                delete partitions[k];
-                partitions[k] = 0;
+                delete partitions_[k];
+                partitions_[k] = 0;
 
             }
 
         }
 #endif
 
-        partitions_ = BasicRowTree<KrKcTree<elem_type>*>(partitions, 2);
-
-
-
     }
 
     ~UnevenKrKcTree() {
 
-        auto parts = partitions_.getAllElements();
-        for (auto& p : parts) {
-            delete p;
+        for (size_type k = 0; k < numPartitions_; k++) {
+            delete partitions_[k];
         }
+        delete[] partitions_;
 
     }
 
@@ -288,18 +293,18 @@ public:
     bool isNotNull(size_type i, size_type j) override {
 
         auto pis = determineIndices(i, j);
-        auto p = partitions_.getElement(pis.partition);
+        auto p = partitions_[pis.partition];
 
-        return (p != partitions_.getNull()) && p->isNotNull(pis.row, pis.col);
+        return (p != 0) && p->isNotNull(pis.row, pis.col);
 
     }
 
     elem_type getElement(size_type i, size_type j) override {
 
         auto pis = determineIndices(i, j);
-        auto p = partitions_.getElement(pis.partition);
+        auto p = partitions_[pis.partition];
 
-        return (p != partitions_.getNull()) ? p->getElement(pis.row, pis.col) : null_;
+        return (p != 0) ? p->getElement(pis.row, pis.col) : null_;
 
     }
 
@@ -311,8 +316,8 @@ public:
 
             for (size_type k = 0; k < numPartitions_; k++) {
 
-                auto p = partitions_.getElement(k);
-                if (p != partitions_.getNull()) {
+                auto p = partitions_[k];
+                if (p != 0) {
 
                     auto tmp = p->getSuccessorElements(i);
                     succs.reserve(succs.size() + tmp.size());
@@ -325,8 +330,8 @@ public:
         } else {
 
             auto pis = determineIndices(i, 0);
-            auto p = partitions_.getElement(pis.partition);
-            if (p != partitions_.getNull()) {
+            auto p = partitions_[pis.partition];
+            if (p != 0) {
                 succs = p->getSuccessorElements(pis.row);
             }
 
@@ -345,8 +350,8 @@ public:
             size_type offset = 0;
             for (size_type k = 0; k < numPartitions_; k++, offset += partitionSize_) {
 
-                auto p = partitions_.getElement(k);
-                if (p != partitions_.getNull()) {
+                auto p = partitions_[k];
+                if (p != 0) {
 
                     auto tmp = p->getSuccessorPositions(i);
                     for (size_type l = 0; l < tmp.size(); l++) {
@@ -363,8 +368,8 @@ public:
         } else {
 
             auto pis = determineIndices(i, 0);
-            auto p = partitions_.getElement(pis.partition);
-            if (p != partitions_.getNull()) {
+            auto p = partitions_[pis.partition];
+            if (p != 0) {
                 succs = p->getSuccessorPositions(pis.row);
             }
 
@@ -383,8 +388,8 @@ public:
             size_type offset = 0;
             for (size_type k = 0; k < numPartitions_; k++, offset += partitionSize_) {
 
-                auto p = partitions_.getElement(k);
-                if (p != partitions_.getNull()) {
+                auto p = partitions_[k];
+                if (p != 0) {
 
                     auto tmp = p->getSuccessorValuedPositions(i);
                     for (size_type l = 0; l < tmp.size(); l++) {
@@ -401,8 +406,8 @@ public:
         } else {
 
             auto pis = determineIndices(i, 0);
-            auto p = partitions_.getElement(pis.partition);
-            if (p != partitions_.getNull()) {
+            auto p = partitions_[pis.partition];
+            if (p != 0) {
                 succs = p->getSuccessorValuedPositions(pis.row);
             }
 
@@ -429,8 +434,8 @@ public:
 
             for (size_type k = 0; k < numPartitions_; k++) {
 
-                auto p = partitions_.getElement(k);
-                if (p != partitions_.getNull()) {
+                auto p = partitions_[k];
+                if (p != 0) {
 
                     auto tmp = p->getPredecessorElements(j);
                     preds.reserve(preds.size() + tmp.size());
@@ -443,8 +448,8 @@ public:
         } else {
 
             auto pis = determineIndices(0, j);
-            auto p = partitions_.getElement(pis.partition);
-            if (p != partitions_.getNull()) {
+            auto p = partitions_[pis.partition];
+            if (p != 0) {
                 preds = p->getPredecessorElements(pis.col);
             }
 
@@ -463,8 +468,8 @@ public:
             size_type offset = 0;
             for (size_type k = 0; k < numPartitions_; k++, offset += partitionSize_) {
 
-                auto p = partitions_.getElement(k);
-                if (p != partitions_.getNull()) {
+                auto p = partitions_[k];
+                if (p != 0) {
 
                     auto tmp = p->getPredecessorPositions(j);
                     for (size_type l = 0; l < tmp.size(); l++) {
@@ -481,8 +486,8 @@ public:
         } else {
 
             auto pis = determineIndices(0, j);
-            auto p = partitions_.getElement(pis.partition);
-            if (p != partitions_.getNull()) {
+            auto p = partitions_[pis.partition];
+            if (p != 0) {
                 preds = p->getPredecessorPositions(pis.col);
             }
 
@@ -501,8 +506,8 @@ public:
             size_type offset = 0;
             for (size_type k = 0; k < numPartitions_; k++, offset += partitionSize_) {
 
-                auto p = partitions_.getElement(k);
-                if (p != partitions_.getNull()) {
+                auto p = partitions_[k];
+                if (p != 0) {
 
                     auto tmp = p->getPredecessorValuedPositions(j);
                     for (size_type l = 0; l < tmp.size(); l++) {
@@ -519,8 +524,8 @@ public:
         } else {
 
             auto pis = determineIndices(0, j);
-            auto p = partitions_.getElement(pis.partition);
-            if (p != partitions_.getNull()) {
+            auto p = partitions_[pis.partition];
+            if (p != 0) {
                 preds = p->getPredecessorValuedPositions(pis.col);
             }
 
@@ -549,8 +554,8 @@ public:
         // range falls completely within one partition
         if (upperLeft.partition == lowerRight.partition) {
 
-            auto p = partitions_.getElement(upperLeft.partition);
-            if (p != partitions_.getNull()) {
+            auto p = partitions_[upperLeft.partition];
+            if (p != 0) {
                 elements = p->getElementsInRange(upperLeft.row, lowerRight.row, upperLeft.col, lowerRight.col);
             }
 
@@ -565,24 +570,24 @@ public:
         if (hc_ > hr_) {
 
             // first partition (partially spanned)
-            auto p = partitions_.getElement(upperLeft.partition);
-            if (p != partitions_.getNull()) {
+            auto p = partitions_[upperLeft.partition];
+            if (p != 0) {
                 tmp.push_back(p->getElementsInRange(upperLeft.row, lowerRight.row, upperLeft.col, partitionSize_ - 1));
             }
 
             // intermediate partition (fully spanned, if any)
             for (size_type k = upperLeft.partition + 1; k < lowerRight.partition; k++) {
 
-                p = partitions_.getElement(k);
-                if (p != partitions_.getNull()) {
+                p = partitions_[k];
+                if (p != 0) {
                     tmp.push_back(p->getElementsInRange(upperLeft.row, lowerRight.row, 0, partitionSize_ - 1));
                 }
 
             }
 
             // last partition (partially spanned)
-            p = partitions_.getElement(lowerRight.partition);
-            if (p != partitions_.getNull()) {
+            p = partitions_[lowerRight.partition];
+            if (p != 0) {
                 tmp.push_back(p->getElementsInRange(upperLeft.row, lowerRight.row, 0, lowerRight.col));
             }
 
@@ -603,24 +608,24 @@ public:
         } else {
 
             // first partition (partially spanned)
-            auto p = partitions_.getElement(upperLeft.partition);
-            if (p != partitions_.getNull()) {
+            auto p = partitions_[upperLeft.partition];
+            if (p != 0) {
                 tmp.push_back(p->getElementsInRange(upperLeft.row, partitionSize_ - 1, upperLeft.col, lowerRight.col));
             }
 
             // intermediate partition (fully spanned, if any)
             for (size_type k = upperLeft.partition + 1; k < lowerRight.partition; k++) {
 
-                p = partitions_.getElement(k);
-                if (p != partitions_.getNull()) {
+                p = partitions_[k];
+                if (p != 0) {
                     tmp.push_back(p->getElementsInRange(0, partitionSize_ - 1, upperLeft.col, lowerRight.col));
                 }
 
             }
 
             // last partition (partially spanned)
-            p = partitions_.getElement(lowerRight.partition);
-            if (p != partitions_.getNull()) {
+            p = partitions_[lowerRight.partition];
+            if (p != 0) {
                 tmp.push_back(p->getElementsInRange(0, lowerRight.row, upperLeft.col, lowerRight.col));
             }
 
@@ -655,8 +660,8 @@ public:
         // range falls completely within one partition
         if (upperLeft.partition == lowerRight.partition) {
 
-            auto p = partitions_.getElement(upperLeft.partition);
-            if (p != partitions_.getNull()) {
+            auto p = partitions_[upperLeft.partition];
+            if (p != 0) {
 
                 elements = p->getPositionsInRange(upperLeft.row, lowerRight.row, upperLeft.col, lowerRight.col);
 
@@ -690,8 +695,8 @@ public:
         if (hc_ > hr_) {
 
             // first partition (partially spanned)
-            auto p = partitions_.getElement(upperLeft.partition);
-            if (p != partitions_.getNull()) {
+            auto p = partitions_[upperLeft.partition];
+            if (p != 0) {
 
                 tmp.push_back(p->getPositionsInRange(upperLeft.row, lowerRight.row, upperLeft.col, partitionSize_ - 1));
                 for (auto& e : tmp.back()) {
@@ -704,8 +709,8 @@ public:
             offset += partitionSize_;
             for (size_type k = upperLeft.partition + 1; k < lowerRight.partition; k++, offset += partitionSize_) {
 
-                p = partitions_.getElement(k);
-                if (p != partitions_.getNull()) {
+                p = partitions_[k];
+                if (p != 0) {
 
                     tmp.push_back(p->getPositionsInRange(upperLeft.row, lowerRight.row, 0, partitionSize_ - 1));
                     for (auto& e : tmp.back()) {
@@ -717,8 +722,8 @@ public:
             }
 
             // last partition (partially spanned)
-            p = partitions_.getElement(lowerRight.partition);
-            if (p != partitions_.getNull()) {
+            p = partitions_[lowerRight.partition];
+            if (p != 0) {
 
                 tmp.push_back(p->getPositionsInRange(upperLeft.row, lowerRight.row, 0, lowerRight.col));
                 for (auto& e : tmp.back()) {
@@ -730,8 +735,8 @@ public:
         } else {
 
             // first partition (partially spanned)
-            auto p = partitions_.getElement(upperLeft.partition);
-            if (p != partitions_.getNull()) {
+            auto p = partitions_[upperLeft.partition];
+            if (p != 0) {
 
                 tmp.push_back(p->getPositionsInRange(upperLeft.row, partitionSize_ - 1, upperLeft.col, lowerRight.col));
                 for (auto& e : tmp.back()) {
@@ -744,8 +749,8 @@ public:
             offset += partitionSize_;
             for (size_type k = upperLeft.partition + 1; k < lowerRight.partition; k++, offset += partitionSize_) {
 
-                p = partitions_.getElement(k);
-                if (p != partitions_.getNull()) {
+                p = partitions_[k];
+                if (p != 0) {
 
                     tmp.push_back(p->getPositionsInRange(0, partitionSize_ - 1, upperLeft.col, lowerRight.col));
                     for (auto& e : tmp.back()) {
@@ -757,8 +762,8 @@ public:
             }
 
             // last partition (partially spanned)
-            p = partitions_.getElement(lowerRight.partition);
-            if (p != partitions_.getNull()) {
+            p = partitions_[lowerRight.partition];
+            if (p != 0) {
 
                 tmp.push_back(p->getPositionsInRange(0, lowerRight.row, upperLeft.col, lowerRight.col));
                 for (auto& e : tmp.back()) {
@@ -798,8 +803,8 @@ public:
         // range falls completely within one partition
         if (upperLeft.partition == lowerRight.partition) {
 
-            auto p = partitions_.getElement(upperLeft.partition);
-            if (p != partitions_.getNull()) {
+            auto p = partitions_[upperLeft.partition];
+            if (p != 0) {
 
                 elements = p->getValuedPositionsInRange(upperLeft.row, lowerRight.row, upperLeft.col, lowerRight.col);
 
@@ -833,8 +838,8 @@ public:
         if (hc_ > hr_) {
 
             // first partition (partially spanned)
-            auto p = partitions_.getElement(upperLeft.partition);
-            if (p != partitions_.getNull()) {
+            auto p = partitions_[upperLeft.partition];
+            if (p != 0) {
 
                 tmp.push_back(p->getValuedPositionsInRange(upperLeft.row, lowerRight.row, upperLeft.col, partitionSize_ - 1));
                 for (auto& e : tmp.back()) {
@@ -847,8 +852,8 @@ public:
             offset += partitionSize_;
             for (size_type k = upperLeft.partition + 1; k < lowerRight.partition; k++, offset += partitionSize_) {
 
-                p = partitions_.getElement(k);
-                if (p != partitions_.getNull()) {
+                p = partitions_[k];
+                if (p != 0) {
 
                     tmp.push_back(p->getValuedPositionsInRange(upperLeft.row, lowerRight.row, 0, partitionSize_ - 1));
                     for (auto& e : tmp.back()) {
@@ -860,8 +865,8 @@ public:
             }
 
             // last partition (partially spanned)
-            p = partitions_.getElement(lowerRight.partition);
-            if (p != partitions_.getNull()) {
+            p = partitions_[lowerRight.partition];
+            if (p != 0) {
 
                 tmp.push_back(p->getValuedPositionsInRange(upperLeft.row, lowerRight.row, 0, lowerRight.col));
                 for (auto& e : tmp.back()) {
@@ -873,8 +878,8 @@ public:
         } else {
 
             // first partition (partially spanned)
-            auto p = partitions_.getElement(upperLeft.partition);
-            if (p != partitions_.getNull()) {
+            auto p = partitions_[upperLeft.partition];
+            if (p != 0) {
 
                 tmp.push_back(p->getValuedPositionsInRange(upperLeft.row, partitionSize_ - 1, upperLeft.col, lowerRight.col));
                 for (auto& e : tmp.back()) {
@@ -887,8 +892,8 @@ public:
             offset += partitionSize_;
             for (size_type k = upperLeft.partition + 1; k < lowerRight.partition; k++, offset += partitionSize_) {
 
-                p = partitions_.getElement(k);
-                if (p != partitions_.getNull()) {
+                p = partitions_[k];
+                if (p != 0) {
 
                     tmp.push_back(p->getValuedPositionsInRange(0, partitionSize_ - 1, upperLeft.col, lowerRight.col));
                     for (auto& e : tmp.back()) {
@@ -900,8 +905,8 @@ public:
             }
 
             // last partition (partially spanned)
-            p = partitions_.getElement(lowerRight.partition);
-            if (p != partitions_.getNull()) {
+            p = partitions_[lowerRight.partition];
+            if (p != 0) {
 
                 tmp.push_back(p->getValuedPositionsInRange(0, lowerRight.row, upperLeft.col, lowerRight.col));
                 for (auto& e : tmp.back()) {
@@ -937,8 +942,8 @@ public:
 
         for (size_type k = 0; k < numPartitions_; k++) {
 
-            auto p = partitions_.getElement(k);
-            if (p != partitions_.getNull()) {
+            auto p = partitions_[k];
+            if (p != 0) {
 
                 auto tmp = p->getAllElements();
                 elements.reserve(elements.size() + tmp.size());
@@ -959,8 +964,8 @@ public:
 
         for (size_type k = 0; k < numPartitions_; k++, offset += partitionSize_) {
 
-            auto p = partitions_.getElement(k);
-            if (p != partitions_.getNull()) {
+            auto p = partitions_[k];
+            if (p != 0) {
 
                 auto tmp = p->getAllPositions();
                 if (hc_ > hr_) {
@@ -995,8 +1000,8 @@ public:
 
         for (size_type k = 0; k < numPartitions_; k++, offset += partitionSize_) {
 
-            auto p = partitions_.getElement(k);
-            if (p != partitions_.getNull()) {
+            auto p = partitions_[k];
+            if (p != 0) {
 
                 auto tmp = p->getAllValuedPositions();
                 if (hc_ > hr_) {
@@ -1033,8 +1038,8 @@ public:
         // range falls completely within one partition
         if (upperLeft.partition == lowerRight.partition) {
 
-            auto p = partitions_.getElement(upperLeft.partition);
-            return (p != partitions_.getNull()) && p->containsElement(upperLeft.row, lowerRight.row, upperLeft.col, lowerRight.col);
+            auto p = partitions_[upperLeft.partition];
+            return (p != 0) && p->containsElement(upperLeft.row, lowerRight.row, upperLeft.col, lowerRight.col);
 
         }
 
@@ -1044,38 +1049,38 @@ public:
         if (hc_ > hr_) {
 
             // first partition (partially spanned)
-            auto p = partitions_.getElement(upperLeft.partition);
-            found = (p != partitions_.getNull()) && p->containsElement(upperLeft.row, lowerRight.row, upperLeft.col, partitionSize_ - 1);
+            auto p = partitions_[upperLeft.partition];
+            found = (p != 0) && p->containsElement(upperLeft.row, lowerRight.row, upperLeft.col, partitionSize_ - 1);
 
             // intermediate partition (fully spanned, if any)
             for (size_type k = upperLeft.partition + 1; (k < lowerRight.partition) && !found; k++) {
 
-                p = partitions_.getElement(k);
-                found = (p != partitions_.getNull()) && p->containsElement(upperLeft.row, lowerRight.row, 0, partitionSize_ - 1);
+                p = partitions_[k];
+                found = (p != 0) && p->containsElement(upperLeft.row, lowerRight.row, 0, partitionSize_ - 1);
 
             }
 
             // last partition (partially spanned)
-            p = partitions_.getElement(lowerRight.partition);
-            found = found || ((p != partitions_.getNull()) && p->containsElement(upperLeft.row, lowerRight.row, 0, lowerRight.col));
+            p = partitions_[lowerRight.partition];
+            found = found || ((p != 0) && p->containsElement(upperLeft.row, lowerRight.row, 0, lowerRight.col));
 
         } else {
 
             // first partition (partially spanned)
-            auto p = partitions_.getElement(upperLeft.partition);
-            found =  (p != partitions_.getNull()) && p->containsElement(upperLeft.row, partitionSize_ - 1, upperLeft.col, lowerRight.col);
+            auto p = partitions_[upperLeft.partition];
+            found =  (p != 0) && p->containsElement(upperLeft.row, partitionSize_ - 1, upperLeft.col, lowerRight.col);
 
             // intermediate partition (fully spanned, if any)
             for (size_type k = upperLeft.partition + 1; (k < lowerRight.partition) && !found; k++) {
 
-                p = partitions_.getElement(k);
-                found = (p != partitions_.getNull()) && p->containsElement(0, partitionSize_ - 1, upperLeft.col, lowerRight.col);
+                p = partitions_[k];
+                found = (p != 0) && p->containsElement(0, partitionSize_ - 1, upperLeft.col, lowerRight.col);
 
             }
 
             // last partition (partially spanned)
-            p = partitions_.getElement(lowerRight.partition);
-            found = found ||  ((p != partitions_.getNull()) && p->containsElement(0, lowerRight.row, upperLeft.col, lowerRight.col));
+            p = partitions_[lowerRight.partition];
+            found = found ||  ((p != 0) && p->containsElement(0, lowerRight.row, upperLeft.col, lowerRight.col));
 
         }
 
@@ -1088,13 +1093,18 @@ public:
         size_type cnt = 0;
         for (size_type k = 0; k < numPartitions_; k++) {
 
-            auto p = partitions_.getElement(k);
-            cnt += (p != partitions_.getNull()) ? p->countElements() : 0;
+            auto p = partitions_[k];
+            cnt += (p != 0) ? p->countElements() : 0;
 
         }
 
         return cnt;
 
+    }
+
+
+    UnevenKrKcTree* clone() const override {
+        return new UnevenKrKcTree<elem_type>(*this);
     }
 
 
@@ -1116,8 +1126,8 @@ public:
             for (size_type k = 0; k < numPartitions_; k++) {
 
                 std::cout << "===== Partition " << k << " =====" << std::endl;
-                auto p = partitions_.getElement(k);
-                if (p != partitions_.getNull()) {
+                auto p = partitions_[k];
+                if (p != 0) {
                     p->print(true);
                 } else {
                     std::cout << "((ALL NULL))" << std::endl;
@@ -1161,9 +1171,9 @@ public:
     void setNull(size_type i, size_type j) override {
 
         auto pis = determineIndices(i, j);
-        auto p = partitions_.getElement(pis.partition);
+        auto p = partitions_[pis.partition];
 
-        if (p != partitions_.getNull()) {
+        if (p != 0) {
             p->setNull(pis.row, pis.col);
         }
 
@@ -1178,7 +1188,7 @@ private:
     size_type numRows_;
     size_type numCols_;
 
-    BasicRowTree<KrKcTree<elem_type>*> partitions_;
+    KrKcTree<elem_type>** partitions_;
     size_type partitionSize_;
     size_type numPartitions_;
 
@@ -1256,7 +1266,10 @@ public:
 
 
     UnevenKrKcTree() {
-        // nothing to do
+
+        partitions_ = 0;
+        numPartitions_ = 0;
+
     }
 
     UnevenKrKcTree(const UnevenKrKcTree& other) {
@@ -1269,7 +1282,10 @@ public:
         numCols_ = other.numCols_;
         null_ = other.null_;
 
-        partitions_ = other.partitions_;
+        partitions_ = new KrKcTree<elem_type>*[other.numPartitions_];
+        for (size_type k = 0; k < other.numPartitions_; k++) {
+            partitions_[k] = new KrKcTree<elem_type>(*other.partitions_[k]);
+        }
         partitionSize_ = other.partitionSize_;
         numPartitions_ = other.numPartitions_;
 
@@ -1290,7 +1306,14 @@ public:
         numCols_ = other.numCols_;
         null_ = other.null_;
 
-        partitions_ = other.partitions_;
+        for (size_type k = 0; k < numPartitions_; k++) {
+            delete partitions_[k];
+        }
+        delete[] partitions_;
+        partitions_ = new KrKcTree<elem_type>*[other.numPartitions_];
+        for (size_type k = 0; k < other.numPartitions_; k++) {
+            partitions_[k] = new KrKcTree<elem_type>(*other.partitions_[k]);
+        }
         partitionSize_ = other.partitionSize_;
         numPartitions_ = other.numPartitions_;
 
@@ -1311,15 +1334,14 @@ public:
         numCols_ = size_type(pow(kc_, hc_));
 
 
-        std::vector<KrKcTree<elem_type>*> partitions;
-
         if (hc_ > hr_) {
 
             partitionSize_ = size_type(pow(kc_, hr_));
             numPartitions_ = numCols_ / partitionSize_;
+            partitions_ = new KrKcTree<elem_type>*[numPartitions_];
 
             for (size_type i = 0; i < numPartitions_; i++) {
-                partitions.push_back(new KrKcTree<elem_type>(mat, 0, i * partitionSize_, numRows_, partitionSize_, kr_, kc_));
+                partitions_[i] = new KrKcTree<elem_type>(mat, 0, i * partitionSize_, numRows_, partitionSize_, kr_, kc_);
             }
 
 
@@ -1327,9 +1349,10 @@ public:
 
             partitionSize_ = size_type(pow(kr_, hc_));
             numPartitions_ = numRows_ / partitionSize_;
+            partitions_ = new KrKcTree<elem_type>*[numPartitions_];
 
             for (size_type j = 0; j < numPartitions_; j++) {
-                partitions.push_back(new KrKcTree<elem_type>(mat, j * partitionSize_, 0, partitionSize_, numCols_, kr_, kc_));
+                partitions_[j] = new KrKcTree<elem_type>(mat, j * partitionSize_, 0, partitionSize_, numCols_, kr_, kc_);
             }
 
         }
@@ -1337,17 +1360,15 @@ public:
 #if 1
         for (size_type k = 0; k < numPartitions_; k++) {
 
-            if (partitions[k]->getNumRows() == 0) {
+            if (partitions_[k]->getNumRows() == 0) {
 
-                delete partitions[k];
-                partitions[k] = 0;
+                delete partitions_[k];
+                partitions_[k] = 0;
 
             }
 
         }
 #endif
-
-        partitions_ = BasicRowTree<KrKcTree<elem_type>*>(partitions, 2);
 
     }
 
@@ -1371,15 +1392,14 @@ public:
         numCols_ = size_type(pow(kc_, hc_));
 
 
-        std::vector<KrKcTree<elem_type>*> partitions;
-
         if (hc_ > hr_) {
 
             partitionSize_ = size_type(pow(kc_, hr_));
             numPartitions_ = numCols_ / partitionSize_;
+            partitions_ = new KrKcTree<elem_type>*[numPartitions_];
 
             for (size_type i = 0; i < numPartitions_; i++) {
-                partitions.push_back(new KrKcTree<elem_type>(lists, 0, i * partitionSize_, numRows_, partitionSize_, kr_, kc_, mode));
+                partitions_[i] = new KrKcTree<elem_type>(lists, 0, i * partitionSize_, numRows_, partitionSize_, kr_, kc_, mode);
             }
 
 
@@ -1387,9 +1407,10 @@ public:
 
             partitionSize_ = size_type(pow(kr_, hc_));
             numPartitions_ = numRows_ / partitionSize_;
+            partitions_ = new KrKcTree<elem_type>*[numPartitions_];
 
             for (size_type j = 0; j < numPartitions_; j++) {
-                partitions.push_back(new KrKcTree<elem_type>(lists, j * partitionSize_, 0, partitionSize_, numCols_, kr_, kc_, mode));
+                partitions_[j] = new KrKcTree<elem_type>(lists, j * partitionSize_, 0, partitionSize_, numCols_, kr_, kc_, mode);
             }
 
         }
@@ -1397,17 +1418,15 @@ public:
 #if 1
         for (size_type k = 0; k < numPartitions_; k++) {
 
-            if (partitions[k]->getNumRows() == 0) {
+            if (partitions_[k]->getNumRows() == 0) {
 
-                delete partitions[k];
-                partitions[k] = 0;
+                delete partitions_[k];
+                partitions_[k] = 0;
 
             }
 
         }
 #endif
-
-        partitions_ = BasicRowTree<KrKcTree<elem_type>*>(partitions, 2);
 
     }
 
@@ -1431,19 +1450,18 @@ public:
         numRows_ = size_type(pow(kr_, hr_));
         numCols_ = size_type(pow(kc_, hc_));
 
-        std::vector<KrKcTree<elem_type>*> partitions;
-
         if (hc_ > hr_) {
 
             partitionSize_ = size_type(pow(kc_, hr_));
             numPartitions_ = numCols_ / partitionSize_;
+            partitions_ = new KrKcTree<elem_type>*[numPartitions_];
 
             Subproblem sp(0, numRows_ - 1, 0, numCols_ - 1, 0, pairs.size());
             std::vector<std::pair<size_type, size_type>> intervals(numPartitions_);
             countingSort(pairs, intervals, sp, numRows_, partitionSize_, numPartitions_);
 
-            for (size_type i = 0; i < numPartitions_; i++) {std::cout<<"i = "<<i<<std::endl;
-                partitions.push_back(new KrKcTree<elem_type>(pairs, 0, i * partitionSize_, numRows_, partitionSize_, intervals[i].first, intervals[i].second, kr_, kc_));
+            for (size_type i = 0; i < numPartitions_; i++) {
+                partitions_[i] = new KrKcTree<elem_type>(pairs, 0, i * partitionSize_, numRows_, partitionSize_, intervals[i].first, intervals[i].second, kr_, kc_);
             }
 
 
@@ -1451,13 +1469,14 @@ public:
 
             partitionSize_ = size_type(pow(kr_, hc_));
             numPartitions_ = numRows_ / partitionSize_;
+            partitions_ = new KrKcTree<elem_type>*[numPartitions_];
 
             Subproblem sp(0, numRows_ - 1, 0, numCols_ - 1, 0, pairs.size());
             std::vector<std::pair<size_type, size_type>> intervals(numPartitions_);
             countingSort(pairs, intervals, sp, partitionSize_, numCols_, numPartitions_);
 
-            for (size_type j = 0; j < numPartitions_; j++) {std::cout<<"j = "<<j<<std::endl;
-                partitions.push_back(new KrKcTree<elem_type>(pairs, j * partitionSize_, 0, partitionSize_, numCols_, intervals[j].first, intervals[j].second, kr_, kc_));
+            for (size_type j = 0; j < numPartitions_; j++) {
+                partitions_[j] = new KrKcTree<elem_type>(pairs, j * partitionSize_, 0, partitionSize_, numCols_, intervals[j].first, intervals[j].second, kr_, kc_);
             }
 
         }
@@ -1465,17 +1484,24 @@ public:
 #if 1
         for (size_type k = 0; k < numPartitions_; k++) {
 
-            if (partitions[k]->getNumRows() == 0) {
+            if (partitions_[k]->getNumRows() == 0) {
 
-                delete partitions[k];
-                partitions[k] = 0;
+                delete partitions_[k];
+                partitions_[k] = 0;
 
             }
 
         }
 #endif
 
-        partitions_ = BasicRowTree<KrKcTree<elem_type>*>(partitions, 2);
+    }
+
+    ~UnevenKrKcTree() {
+
+        for (size_type k = 0; k < numPartitions_; k++) {
+            delete partitions_[k];
+        }
+        delete[] partitions_;
 
     }
 
@@ -1512,9 +1538,9 @@ public:
     bool areRelated(size_type i, size_type j) override {
 
         auto pis = determineIndices(i, j);
-        auto p = partitions_.getElement(pis.partition);
+        auto p = partitions_[pis.partition];
 
-        return (p != partitions_.getNull()) && p->areRelated(pis.row, pis.col);
+        return (p != 0) && p->areRelated(pis.row, pis.col);
 
     }
 
@@ -1527,8 +1553,8 @@ public:
             size_type offset = 0;
             for (size_type k = 0; k < numPartitions_; k++, offset += partitionSize_) {
 
-                auto p = partitions_.getElement(k);
-                if (p != partitions_.getNull()) {
+                auto p = partitions_[k];
+                if (p != 0) {
 
                     auto tmp = p->getSuccessors(i);
                     for (size_type l = 0; l < tmp.size(); l++) {
@@ -1545,8 +1571,8 @@ public:
         } else {
 
             auto pis = determineIndices(i, 0);
-            auto p = partitions_.getElement(pis.partition);
-            if (p != partitions_.getNull()) {
+            auto p = partitions_[pis.partition];
+            if (p != 0) {
                 succs = p->getSuccessors(pis.row);
             }
 
@@ -1565,8 +1591,8 @@ public:
             size_type offset = 0;
             for (size_type k = 0; k < numPartitions_; k++, offset += partitionSize_) {
 
-                auto p = partitions_.getElement(k);
-                if (p != partitions_.getNull()) {
+                auto p = partitions_[k];
+                if (p != 0) {
 
                     auto tmp = p->getPredecessors(j);
                     for (size_type l = 0; l < tmp.size(); l++) {
@@ -1583,8 +1609,8 @@ public:
         } else {
 
             auto pis = determineIndices(0, j);
-            auto p = partitions_.getElement(pis.partition);
-            if (p != partitions_.getNull()) {
+            auto p = partitions_[pis.partition];
+            if (p != 0) {
                 preds = p->getPredecessors(pis.col);
             }
 
@@ -1604,8 +1630,8 @@ public:
         // range falls completely within one partition
         if (upperLeft.partition == lowerRight.partition) {
 
-            auto p = partitions_.getElement(upperLeft.partition);
-            if (p != partitions_.getNull()) {
+            auto p = partitions_[upperLeft.partition];
+            if (p != 0) {
 
                 elements = p->getRange(upperLeft.row, lowerRight.row, upperLeft.col, lowerRight.col);
 
@@ -1639,8 +1665,8 @@ public:
         if (hc_ > hr_) {
 
             // first partition (partially spanned)
-            auto p = partitions_.getElement(upperLeft.partition);
-            if (p != partitions_.getNull()) {
+            auto p = partitions_[upperLeft.partition];
+            if (p != 0) {
 
                 tmp.push_back(p->getRange(upperLeft.row, lowerRight.row, upperLeft.col, partitionSize_ - 1));
                 for (auto& e : tmp.back()) {
@@ -1653,8 +1679,8 @@ public:
             offset += partitionSize_;
             for (size_type k = upperLeft.partition + 1; k < lowerRight.partition; k++, offset += partitionSize_) {
 
-                p = partitions_.getElement(k);
-                if (p != partitions_.getNull()) {
+                p = partitions_[k];
+                if (p != 0) {
 
                     tmp.push_back(p->getRange(upperLeft.row, lowerRight.row, 0, partitionSize_ - 1));
                     for (auto& e : tmp.back()) {
@@ -1666,8 +1692,8 @@ public:
             }
 
             // last partition (partially spanned)
-            p = partitions_.getElement(lowerRight.partition);
-            if (p != partitions_.getNull()) {
+            p = partitions_[lowerRight.partition];
+            if (p != 0) {
 
                 tmp.push_back(p->getRange(upperLeft.row, lowerRight.row, 0, lowerRight.col));
                 for (auto& e : tmp.back()) {
@@ -1679,8 +1705,8 @@ public:
         } else {
 
             // first partition (partially spanned)
-            auto p = partitions_.getElement(upperLeft.partition);
-            if (p != partitions_.getNull()) {
+            auto p = partitions_[upperLeft.partition];
+            if (p != 0) {
 
                 tmp.push_back(p->getRange(upperLeft.row, partitionSize_ - 1, upperLeft.col, lowerRight.col));
                 for (auto& e : tmp.back()) {
@@ -1693,8 +1719,8 @@ public:
             offset += partitionSize_;
             for (size_type k = upperLeft.partition + 1; k < lowerRight.partition; k++, offset += partitionSize_) {
 
-                p = partitions_.getElement(k);
-                if (p != partitions_.getNull()) {
+                p = partitions_[k];
+                if (p != 0) {
 
                     tmp.push_back(p->getRange(0, partitionSize_ - 1, upperLeft.col, lowerRight.col));
                     for (auto& e : tmp.back()) {
@@ -1706,8 +1732,8 @@ public:
             }
 
             // last partition (partially spanned)
-            p = partitions_.getElement(lowerRight.partition);
-            if (p != partitions_.getNull()) {
+            p = partitions_[lowerRight.partition];
+            if (p != 0) {
 
                 tmp.push_back(p->getRange(0, lowerRight.row, upperLeft.col, lowerRight.col));
                 for (auto& e : tmp.back()) {
@@ -1746,8 +1772,8 @@ public:
         // range falls completely within one partition
         if (upperLeft.partition == lowerRight.partition) {
 
-            auto p = partitions_.getElement(upperLeft.partition);
-            return (p != partitions_.getNull()) && p->containsLink(upperLeft.row, lowerRight.row, upperLeft.col, lowerRight.col);
+            auto p = partitions_[upperLeft.partition];
+            return (p != 0) && p->containsLink(upperLeft.row, lowerRight.row, upperLeft.col, lowerRight.col);
 
         }
 
@@ -1757,38 +1783,38 @@ public:
         if (hc_ > hr_) {
 
             // first partition (partially spanned)
-            auto p = partitions_.getElement(upperLeft.partition);
-            found = (p != partitions_.getNull()) && p->containsLink(upperLeft.row, lowerRight.row, upperLeft.col, partitionSize_ - 1);
+            auto p = partitions_[upperLeft.partition];
+            found = (p != 0) && p->containsLink(upperLeft.row, lowerRight.row, upperLeft.col, partitionSize_ - 1);
 
             // intermediate partition (fully spanned, if any)
             for (size_type k = upperLeft.partition + 1; (k < lowerRight.partition) && !found; k++) {
 
-                p = partitions_.getElement(k);
-                found = (p != partitions_.getNull()) && p->containsLink(upperLeft.row, lowerRight.row, 0, partitionSize_ - 1);
+                p = partitions_[k];
+                found = (p != 0) && p->containsLink(upperLeft.row, lowerRight.row, 0, partitionSize_ - 1);
 
             }
 
             // last partition (partially spanned)
-            p = partitions_.getElement(lowerRight.partition);
-            found = found || ((p != partitions_.getNull()) && p->containsLink(upperLeft.row, lowerRight.row, 0, lowerRight.col));
+            p = partitions_[lowerRight.partition];
+            found = found || ((p != 0) && p->containsLink(upperLeft.row, lowerRight.row, 0, lowerRight.col));
 
         } else {
 
             // first partition (partially spanned)
-            auto p = partitions_.getElement(upperLeft.partition);
-            found =  (p != partitions_.getNull()) && p->containsLink(upperLeft.row, partitionSize_ - 1, upperLeft.col, lowerRight.col);
+            auto p = partitions_[upperLeft.partition];
+            found =  (p != 0) && p->containsLink(upperLeft.row, partitionSize_ - 1, upperLeft.col, lowerRight.col);
 
             // intermediate partition (fully spanned, if any)
             for (size_type k = upperLeft.partition + 1; (k < lowerRight.partition) && !found; k++) {
 
-                p = partitions_.getElement(k);
-                found = (p != partitions_.getNull()) && p->containsLink(0, partitionSize_ - 1, upperLeft.col, lowerRight.col);
+                p = partitions_[k];
+                found = (p != 0) && p->containsLink(0, partitionSize_ - 1, upperLeft.col, lowerRight.col);
 
             }
 
             // last partition (partially spanned)
-            p = partitions_.getElement(lowerRight.partition);
-            found = found ||  ((p != partitions_.getNull()) && p->containsLink(0, lowerRight.row, upperLeft.col, lowerRight.col));
+            p = partitions_[lowerRight.partition];
+            found = found ||  ((p != 0) && p->containsLink(0, lowerRight.row, upperLeft.col, lowerRight.col));
 
         }
 
@@ -1801,8 +1827,8 @@ public:
         size_type cnt = 0;
         for (size_type k = 0; k < numPartitions_; k++) {
 
-            auto p = partitions_.getElement(k);
-            cnt += (p != partitions_.getNull()) ? p->countLinks() : 0;
+            auto p = partitions_[k];
+            cnt += (p != 0) ? p->countLinks() : 0;
 
         }
 
@@ -1914,6 +1940,11 @@ public:
     }
 
 
+    UnevenKrKcTree* clone() const override {
+        return new UnevenKrKcTree<elem_type>(*this);
+    }
+
+
     void print(bool all = false) override {
 
         std::cout << "### Parameters ###" << std::endl;
@@ -1932,8 +1963,8 @@ public:
             for (size_type k = 0; k < numPartitions_; k++) {
 
                 std::cout << "===== Partition " << k << " =====" << std::endl;
-                auto p = partitions_.getElement(k);
-                if (p != partitions_.getNull()) {
+                auto p = partitions_[k];
+                if (p != 0) {
                     p->print(true);
                 } else {
                     std::cout << "((ALL NULL))" << std::endl;
@@ -1950,9 +1981,9 @@ public:
     void setNull(size_type i, size_type j) override {
 
         auto pis = determineIndices(i, j);
-        auto p = partitions_.getElement(pis.partition);
+        auto p = partitions_[pis.partition];
 
-        if (p != partitions_.getNull()) {
+        if (p != 0) {
             p->setNull(pis.row, pis.col);
         }
 
@@ -1967,7 +1998,7 @@ private:
     size_type numRows_;
     size_type numCols_;
 
-    BasicRowTree<KrKcTree<elem_type>*> partitions_;
+    KrKcTree<elem_type>** partitions_;
     size_type partitionSize_;
     size_type numPartitions_;
 
