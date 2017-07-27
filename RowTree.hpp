@@ -11,6 +11,7 @@ public:
 
     typedef std::vector<std::pair<size_type, elem_type>> list_type; // position ("column number") + value
 
+    virtual ~RowTree() { }
 
     virtual size_type getLength() = 0;
 

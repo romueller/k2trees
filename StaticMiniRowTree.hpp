@@ -239,7 +239,7 @@ public:
         if (iter != positions_ + length_) {
 
             size_type* tmpPos = new size_type[length_ - 1];
-            size_type* tmpVal = new elem_type[length_ - 1];
+            elem_type* tmpVal = new elem_type[length_ - 1];
 
             size_type pos = 0;
             size_type* p;
@@ -380,11 +380,7 @@ public:
     }
 
     elem_type getElement(size_type i) override {
-
-        auto iter = std::find(positions_, positions_ + length_, i);
-
-        return iter != positions_ + length_;
-
+        return std::find(positions_, positions_ + length_, i) != positions_ + length_;
     }
 
     std::vector<elem_type> getElementsInRange(size_type l, size_type r) override {

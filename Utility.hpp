@@ -5,12 +5,12 @@
 #include <cmath>
 #include <vector>
 
-#include <sdsl/rank_support_v5.hpp>
+#include <sdsl/rank_support_v.hpp>
 
 typedef unsigned long size_type;
 
 typedef sdsl::bit_vector bit_vector_type;
-typedef sdsl::rank_support_v5<> rank_type;
+typedef sdsl::rank_support_v<> rank_type;
 
 template<typename T>
 struct ValuedPosition {
@@ -23,6 +23,14 @@ struct ValuedPosition {
 
         row = r;
         col = c;
+        val = v;
+
+    }
+
+    ValuedPosition(const std::pair<size_type, size_type>& pos, T v) {
+
+        row = pos.first;
+        col = pos.second;
         val = v;
 
     }

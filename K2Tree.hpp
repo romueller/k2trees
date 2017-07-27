@@ -14,6 +14,7 @@ public:
     typedef std::vector<std::pair<size_type, size_type>> positions_type;
     typedef std::vector<ValuedPosition<elem_type>> pairs_type;
 
+    virtual ~K2Tree() { }
 
     virtual size_type getNumRows() = 0;
 

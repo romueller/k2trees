@@ -3,7 +3,7 @@ project(k2trees)
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -pthread -O3 -msse4.1 -lsdsl")
 
-set(SOURCE_FILES Utility.hpp Utility.cpp K2Tree.hpp RowTree.hpp StaticBasicTree.hpp StaticHybridTree.hpp StaticBasicRectangularTree.hpp StaticUnevenRectangularTree.hpp StaticRowTree.hpp StaticHybridRowTree.hpp StaticMiniRowTree.hpp)
+set(SOURCE_FILES Utility.hpp Utility.cpp K2Tree.hpp RowTree.hpp StaticBasicTree.hpp StaticHybridTree.hpp StaticBasicRectangularTree.hpp StaticUnevenRectangularTree.hpp StaticRowTree.hpp StaticHybridRowTree.hpp StaticMiniRowTree.hpp StaticMiniK2Tree.hpp)
 
 add_library(k2trees ${SOURCE_FILES})
 
