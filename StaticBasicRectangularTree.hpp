@@ -293,8 +293,8 @@ public:
         size_type maxRow = 0;
         size_type maxCol = 0;
         for (auto p : pairs) {
-            maxRow = std::max(maxRow, p.first);
-            maxCol = std::max(maxCol, p.second);
+            maxRow = std::max(maxRow, p.row);
+            maxCol = std::max(maxCol, p.col);
         }
 
 

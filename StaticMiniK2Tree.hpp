@@ -146,7 +146,7 @@ public:
 
         size_type max = 0;
         for (size_type k = 0; k < length_; k++) {
-            max = std::max(max, positions_[k].first);
+            max = std::max(max, positions_[k].first + 1);
         }
 
         return max;
@@ -157,7 +157,7 @@ public:
 
         size_type max = 0;
         for (size_type k = 0; k < length_; k++) {
-            max = std::max(max, positions_[k].second);
+            max = std::max(max, positions_[k].second + 1);
         }
 
         return max;
@@ -551,6 +551,23 @@ public:
 
     }
 
+    MiniK2Tree(const positions_type::iterator& first, const positions_type::iterator& last, const size_type x, const size_type y) {
+
+        length_ = last - first;
+        positions_ = new std::pair<size_type, size_type>[length_];
+
+        size_type pos = 0;
+        for (auto iter = first; iter != last; iter++) {
+
+            positions_[pos] = *iter;
+            positions_[pos].first -= x;
+            positions_[pos].second -= y;
+            pos++;
+
+        }
+
+    }
+
     ~MiniK2Tree() {
         delete[] positions_;
     }
@@ -559,7 +576,7 @@ public:
 
         size_type max = 0;
         for (size_type i = 0; i < length_; i++) {
-            max = std::max(max, positions_[i].first);
+            max = std::max(max, positions_[i].first + 1);
         }
 
         return max;
@@ -571,7 +588,7 @@ public:
 
         size_type max = 0;
         for (size_type i = 0; i < length_; i++) {
-            max = std::max(max, positions_[i].second);
+            max = std::max(max, positions_[i].second + 1);
         }
 
         return max;
