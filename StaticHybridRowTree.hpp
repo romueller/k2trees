@@ -330,7 +330,11 @@ public:
     }
 
     std::vector<elem_type> getAllElements() override {
-        return getElementsInRange(0, nPrime_ - 1);
+//        return getElementsInRange(0, nPrime_ - 1);
+        std::vector<elem_type> elements;
+        fullRangeElemIterative(elements);
+        return elements;
+
     }
 
     std::vector<size_type> getAllPositions() override {
@@ -342,7 +346,11 @@ public:
     }
 
     list_type getAllValuedPositions() override {
-        return getValuedPositionsInRange(0, nPrime_ - 1);
+//        return getValuedPositionsInRange(0, nPrime_ - 1);
+        list_type positions;
+        fullRangeValPosIterative(positions);
+        return positions;
+
     }
 
     bool containsElement(size_type l, size_type r) override {
@@ -867,6 +875,89 @@ private:
 
     /* getElementsInRange() */
 
+    void fullRangeElemIterative(std::vector<elem_type>& elems) {
+
+        if (L_.empty()) return;
+
+        std::queue<SubrowInfo> queue, nextLevelQueue;
+        size_type lenT = T_.size();
+        size_type k = (upperH_ > 0) ? upperK_ : lowerK_;
+
+        if (lenT == 0) {
+
+            for (size_type i = 0; i < nPrime_; i++) {
+                if (L_[i] != null_) {
+                    elems.push_back(L_[i]);
+                }
+            }
+
+        } else {
+
+            // rangeInit
+            size_type n = nPrime_/ k;
+            size_type l = 1;
+
+            for (size_type z = 0, dq = 0; z < k; z++, dq += n) {
+                queue.push(SubrowInfo(dq, z));
+            }
+
+            // range
+            k = (l < upperH_) ? upperK_ : lowerK_;
+            n /= k;
+            for (; n > 1; l++, k = (l < upperH_) ? upperK_ : lowerK_, n /= k) {
+
+                size_type a = (l >= upperH_) * upperLength_;
+                size_type b = (l >= upperH_) * (upperOnes_ + 1);
+
+                while (!queue.empty()) {
+
+                    auto& cur = queue.front();
+
+                    if (T_[cur.z]) {
+
+                        auto y = a + (R_.rank(cur.z + 1) - b) * k;
+
+                        for (size_type j = 0, newDq = cur.dq; j < k; j++, newDq += n, y++) {
+                            nextLevelQueue.push(SubrowInfo(newDq, y));
+                        }
+
+                    }
+
+                    queue.pop();
+
+                }
+
+                queue.swap(nextLevelQueue);
+
+            }
+
+            size_type a = (l >= upperH_) * upperLength_;
+            size_type b = (l >= upperH_) * (upperOnes_ + 1);
+
+            while (!queue.empty()) {
+
+                auto& cur = queue.front();
+
+                if (T_[cur.z]) {
+
+                    auto y = a + (R_.rank(cur.z + 1) - b) * k - lenT;
+
+                    for (size_type j = 0, newDq = cur.dq; j < k; j++, newDq += n, y++) {
+                        if (L_[y] != null_) {
+                            elems.push_back(L_[y]);
+                        }
+                    }
+
+                }
+
+                queue.pop();
+
+            }
+
+        }
+
+    }
+
     void rangeElemInit(std::vector<elem_type>& elems, size_type l, size_type r) {
 
         if (!L_.empty()) {
@@ -1063,6 +1154,89 @@ private:
     }
 
     /* getValuedPositionsInRange() */
+
+    void fullRangeValPosIterative(list_type& elems) {
+
+        if (L_.empty()) return;
+
+        std::queue<SubrowInfo> queue, nextLevelQueue;
+        size_type lenT = T_.size();
+        size_type k = (upperH_ > 0) ? upperK_ : lowerK_;
+
+        if (lenT == 0) {
+
+            for (size_type i = 0; i < nPrime_; i++) {
+                if (L_[i] != null_) {
+                    elems.push_back(std::make_pair(i, L_[i]));
+                }
+            }
+
+        } else {
+
+            // rangeInit
+            size_type n = nPrime_/ k;
+            size_type l = 1;
+
+            for (size_type z = 0, dq = 0; z < k; z++, dq += n) {
+                queue.push(SubrowInfo(dq, z));
+            }
+
+            // range
+            k = (l < upperH_) ? upperK_ : lowerK_;
+            n /= k;
+            for (; n > 1; l++, k = (l < upperH_) ? upperK_ : lowerK_, n /= k) {
+
+                size_type a = (l >= upperH_) * upperLength_;
+                size_type b = (l >= upperH_) * (upperOnes_ + 1);
+
+                while (!queue.empty()) {
+
+                    auto& cur = queue.front();
+
+                    if (T_[cur.z]) {
+
+                        auto y = a + (R_.rank(cur.z + 1) - b) * k;
+
+                        for (size_type j = 0, newDq = cur.dq; j < k; j++, newDq += n, y++) {
+                            nextLevelQueue.push(SubrowInfo(newDq, y));
+                        }
+
+                    }
+
+                    queue.pop();
+
+                }
+
+                queue.swap(nextLevelQueue);
+
+            }
+
+            size_type a = (l >= upperH_) * upperLength_;
+            size_type b = (l >= upperH_) * (upperOnes_ + 1);
+
+            while (!queue.empty()) {
+
+                auto& cur = queue.front();
+
+                if (T_[cur.z]) {
+
+                    auto y = a + (R_.rank(cur.z + 1) - b) * k - lenT;
+
+                    for (size_type j = 0, newDq = cur.dq; j < k; j++, newDq += n, y++) {
+                        if (L_[y] != null_) {
+                            elems.push_back(std::make_pair(newDq, L_[y]));
+                        }
+                    }
+
+                }
+
+                queue.pop();
+
+            }
+
+        }
+
+    }
 
     void rangeValPosInit(list_type& elems, size_type l, size_type r) {
 
@@ -1591,7 +1765,11 @@ public:
     }
 
     std::vector<std::pair<size_type, elem_type>> getAllValuedPositions() override {
-        return getValuedPositionsInRange(0, nPrime_ - 1);
+//        return getValuedPositionsInRange(0, nPrime_ - 1);
+        std::vector<std::pair<size_type, elem_type>> positions;
+        fullRangeValPosIterative(positions);
+        return positions;
+
     }
 
     bool containsElement(size_type l, size_type r) override {
@@ -2275,6 +2453,89 @@ private:
                     for (size_type j = 0, newDq = cur.dq; j < k; j++, newDq += n, y++) {
                         if (L_[y]) {
                             elems.push_back(newDq);
+                        }
+                    }
+
+                }
+
+                queue.pop();
+
+            }
+
+        }
+
+    }
+
+    void fullRangeValPosIterative(std::vector<std::pair<size_type, elem_type>>& elems) {
+
+        if (L_.empty()) return;
+
+        std::queue<SubrowInfo> queue, nextLevelQueue;
+        size_type lenT = T_.size();
+        size_type k = (upperH_ > 0) ? upperK_ : lowerK_;
+
+        if (lenT == 0) {
+
+            for (size_type i = 0; i < nPrime_; i++) {
+                if (L_[i]) {
+                    elems.push_back(std::make_pair(i, 1));
+                }
+            }
+
+        } else {
+
+            // rangeInit
+            size_type n = nPrime_/ k;
+            size_type l = 1;
+
+            for (size_type z = 0, dq = 0; z < k; z++, dq += n) {
+                queue.push(SubrowInfo(dq, z));
+            }
+
+            // range
+            k = (l < upperH_) ? upperK_ : lowerK_;
+            n /= k;
+            for (; n > 1; l++, k = (l < upperH_) ? upperK_ : lowerK_, n /= k) {
+
+                size_type a = (l >= upperH_) * upperLength_;
+                size_type b = (l >= upperH_) * (upperOnes_ + 1);
+
+                while (!queue.empty()) {
+
+                    auto& cur = queue.front();
+
+                    if (T_[cur.z]) {
+
+                        auto y = a + (R_.rank(cur.z + 1) - b) * k;
+
+                        for (size_type j = 0, newDq = cur.dq; j < k; j++, newDq += n, y++) {
+                            nextLevelQueue.push(SubrowInfo(newDq, y));
+                        }
+
+                    }
+
+                    queue.pop();
+
+                }
+
+                queue.swap(nextLevelQueue);
+
+            }
+
+            size_type a = (l >= upperH_) * upperLength_;
+            size_type b = (l >= upperH_) * (upperOnes_ + 1);
+
+            while (!queue.empty()) {
+
+                auto& cur = queue.front();
+
+                if (T_[cur.z]) {
+
+                    auto y = a + (R_.rank(cur.z + 1) - b) * k - lenT;
+
+                    for (size_type j = 0, newDq = cur.dq; j < k; j++, newDq += n, y++) {
+                        if (L_[y]) {
+                            elems.push_back(std::make_pair(newDq, 1));
                         }
                     }
 

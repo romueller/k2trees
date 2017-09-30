@@ -369,7 +369,8 @@ public:
     std::vector<elem_type> getSuccessorElements(size_type i) override {
 
         std::vector<elem_type> succs;
-        successorsElemInit(succs, i);
+        allSuccessorElementsIterative(succs, i);
+//        successorsElemInit(succs, i);
 
         return succs;
 
@@ -388,7 +389,8 @@ public:
     pairs_type getSuccessorValuedPositions(size_type i) override {
 
         pairs_type succs;
-        successorsValPosInit(succs, i);
+        allSuccessorValuedPositionsIterative(succs, i);
+//        successorsValPosInit(succs, i);
 
         return succs;
 
@@ -1143,6 +1145,85 @@ private:
 
     /* getSuccessorElements() */
 
+    void allSuccessorElementsIterative(std::vector<elem_type>& succs, size_type p) {
+
+        if (L_.empty()) return;
+
+        std::queue<SubrowInfo> queue, nextLevelQueue;
+        size_type lenT = T_.size();
+
+        if (lenT == 0) {
+
+            size_type offset = p * numCols_;
+            for (size_type i = 0; i < numCols_; i++) {
+                if (L_[offset + i] != null_) {
+                    succs.push_back(L_[offset + i]);
+                }
+            }
+
+        } else {
+
+            // successorsPosInit
+            size_type nr = numRows_/ kr_;
+            size_type nc = numCols_/ kc_;
+            size_type relP = p;
+            for (size_type j = 0, dq = 0, z = kc_ * (relP / nr); j < kc_; j++, dq += nc, z++) {
+                queue.push(SubrowInfo(dq, z));
+            }
+
+            // successorsPos
+            relP %= nr;
+            nr /= kr_;
+            nc /= kc_;
+            for (; nr > 1; relP %= nr, nr /= kr_, nc /= kc_) {
+
+                while (!queue.empty()) {
+
+                    auto& cur = queue.front();
+
+                    if (T_[cur.z]) {
+
+                        auto y = R_.rank(cur.z + 1) * kr_ * kc_ + kc_ * (relP / nr);
+
+                        for (size_type j = 0, newDq = cur.dq; j < kc_; j++, newDq += nc, y++) {
+                            nextLevelQueue.push(SubrowInfo(newDq, y));
+                        }
+
+                    }
+
+                    queue.pop();
+
+                }
+
+                queue.swap(nextLevelQueue);
+
+            }
+
+
+            while (!queue.empty()) {
+
+                auto& cur = queue.front();
+
+                if (T_[cur.z]) {
+
+                    auto y = R_.rank(cur.z + 1) * kr_ * kc_ + kc_ * (relP / nr) - lenT;
+
+                    for (size_type j = 0, newDq = cur.dq; j < kc_; j++, newDq += nc, y++) {
+                        if (L_[y] != null_) {
+                            succs.push_back(L_[y]);
+                        }
+                    }
+
+                }
+
+                queue.pop();
+
+            }
+
+        }
+
+    }
+
     void successorsElemInit(std::vector<elem_type>& succs, size_type p) {
 
         if (!L_.empty()) {
@@ -1303,6 +1384,85 @@ private:
     }
 
     /* getSuccessorValuedPositions() */
+
+    void allSuccessorValuedPositionsIterative(pairs_type& succs, size_type p) {
+
+        if (L_.empty()) return;
+
+        std::queue<SubrowInfo> queue, nextLevelQueue;
+        size_type lenT = T_.size();
+
+        if (lenT == 0) {
+
+            size_type offset = p * numCols_;
+            for (size_type i = 0; i < numCols_; i++) {
+                if (L_[offset + i] != null_) {
+                    succs.push_back(ValuedPosition<elem_type>(p, i, L_[offset + i]));
+                }
+            }
+
+        } else {
+
+            // successorsPosInit
+            size_type nr = numRows_/ kr_;
+            size_type nc = numCols_/ kc_;
+            size_type relP = p;
+            for (size_type j = 0, dq = 0, z = kc_ * (relP / nr); j < kc_; j++, dq += nc, z++) {
+                queue.push(SubrowInfo(dq, z));
+            }
+
+            // successorsPos
+            relP %= nr;
+            nr /= kr_;
+            nc /= kc_;
+            for (; nr > 1; relP %= nr, nr /= kr_, nc /= kc_) {
+
+                while (!queue.empty()) {
+
+                    auto& cur = queue.front();
+
+                    if (T_[cur.z]) {
+
+                        auto y = R_.rank(cur.z + 1) * kr_ * kc_ + kc_ * (relP / nr);
+
+                        for (size_type j = 0, newDq = cur.dq; j < kc_; j++, newDq += nc, y++) {
+                            nextLevelQueue.push(SubrowInfo(newDq, y));
+                        }
+
+                    }
+
+                    queue.pop();
+
+                }
+
+                queue.swap(nextLevelQueue);
+
+            }
+
+
+            while (!queue.empty()) {
+
+                auto& cur = queue.front();
+
+                if (T_[cur.z]) {
+
+                    auto y = R_.rank(cur.z + 1) * kr_ * kc_ + kc_ * (relP / nr) - lenT;
+
+                    for (size_type j = 0, newDq = cur.dq; j < kc_; j++, newDq += nc, y++) {
+                        if (L_[y] != null_) {
+                            succs.push_back(ValuedPosition<elem_type>(p, newDq, L_[y]));
+                        }
+                    }
+
+                }
+
+                queue.pop();
+
+            }
+
+        }
+
+    }
 
     void successorsValPosInit(pairs_type& succs, size_type p) {
 
