@@ -211,7 +211,7 @@ public:
 
             partitionSize_ = size_type(pow(kc_, hr_));
             numPartitions_ = numCols_ / partitionSize_;
-            partitions_ = new KrKcTree<elem_type>*[numPartitions_];
+            partitions_ = new K2Tree<elem_type>*[numPartitions_];
 
             Subproblem sp(0, numRows_ - 1, 0, numCols_ - 1, 0, pairs.size());
             std::vector<std::pair<size_type, size_type>> intervals(numPartitions_);
@@ -221,7 +221,7 @@ public:
                 if (intervals[i].second - intervals[i].first > mb) {
                     partitions_[i] = new KrKcTree<elem_type>(pairs, 0, i * partitionSize_, numRows_, partitionSize_, intervals[i].first, intervals[i].second, kr_, kc_, null);
                 } else {
-                    partitions_[i] = new MiniK2Tree<elem_type>(pairs.begin() + intervals[i].first, pairs.begin() + intervals[i].second, null);
+                    partitions_[i] = new MiniK2Tree<elem_type>(pairs.begin() + intervals[i].first, pairs.begin() + intervals[i].second, 0, i * partitionSize_, null);
                 }
             }
 
@@ -230,17 +230,17 @@ public:
 
             partitionSize_ = size_type(pow(kr_, hc_));
             numPartitions_ = numRows_ / partitionSize_;
-            partitions_ = new KrKcTree<elem_type>*[numPartitions_];
+            partitions_ = new K2Tree<elem_type>*[numPartitions_];
 
             Subproblem sp(0, numRows_ - 1, 0, numCols_ - 1, 0, pairs.size());
             std::vector<std::pair<size_type, size_type>> intervals(numPartitions_);
             countingSort(pairs, intervals, sp, partitionSize_, numCols_, numPartitions_);
 
             for (size_type j = 0; j < numPartitions_; j++) {
-                if (intervals[j].second - intervals[j].first) {
+                if (intervals[j].second - intervals[j].first > mb) {
                     partitions_[j] = new KrKcTree<elem_type>(pairs, j * partitionSize_, 0, partitionSize_, numCols_, intervals[j].first, intervals[j].second, kr_, kc_, null);
                 } else {
-                    partitions_[j] = new MiniK2Tree<elem_type>(pairs.begin() + intervals[j].first, pairs.begin() + intervals[j].second, null);
+                    partitions_[j] = new MiniK2Tree<elem_type>(pairs.begin() + intervals[j].first, pairs.begin() + intervals[j].second, j * partitionSize_, 0, null);
                 }
             }
 
@@ -1160,6 +1160,41 @@ public:
         return getSuccessorPositions(i);
     }
 
+    size_type getFirstSuccessor(size_type i) override {
+
+        size_type pos = numCols_;
+
+        if (hc_ > hr_) {
+
+            size_type offset = 0;
+            for (size_type k = 0; k < numPartitions_ && pos == numCols_; k++, offset += partitionSize_) {
+
+                auto p = partitions_[k];
+                if (p != 0) {
+
+                    auto tmp = p->getFirstSuccessor(i);
+                    if (tmp != p->getNumCols()) {
+                        pos = offset + tmp;
+                    }
+
+                }
+
+            }
+
+        } else {
+
+            auto pis = determineIndices(i, 0);
+            auto p = partitions_[pis.partition];
+            if (p != 0) {
+                pos = p->getFirstSuccessor(pis.row);
+            }
+
+        }
+
+        return pos;
+
+    }
+
     std::vector<size_type> getPredecessors(size_type j) override {
         return getPredecessorPositions(j);
     }
@@ -1597,6 +1632,41 @@ public:
         }
 
         return succs;
+
+    }
+
+    size_type getFirstSuccessor(size_type i) override {
+
+        size_type pos = numCols_;
+
+        if (hc_ > hr_) {
+
+            size_type offset = 0;
+            for (size_type k = 0; k < numPartitions_ && pos == numCols_; k++, offset += partitionSize_) {
+
+                auto p = partitions_[k];
+                if (p != 0) {
+
+                    auto tmp = p->getFirstSuccessor(i);
+                    if (tmp != p->getNumCols()) {
+                        pos = offset + tmp;
+                    }
+
+                }
+
+            }
+
+        } else {
+
+            auto pis = determineIndices(i, 0);
+            auto p = partitions_[pis.partition];
+            if (p != 0) {
+                pos = p->getFirstSuccessor(pis.row);
+            }
+
+        }
+
+        return pos;
 
     }
 

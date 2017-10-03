@@ -372,6 +372,11 @@ public:
         return getSuccessorPositions(i);
     }
 
+    size_type getFirstSuccessor(size_type i) override {
+//        return firstSuccessorInit(i);
+        return firstSuccessorPositionIterative(i);
+    }
+
     std::vector<size_type> getPredecessors(size_type j) override {
         return getPredecessorPositions(j);
     }
@@ -1169,6 +1174,107 @@ private:
 
     }
 
+    /* getFirstSuccessor() */
+
+    size_type firstSuccessorPositionIterative(size_type p) {
+
+        if (L_.empty()) return nPrime_;
+
+        if (T_.size() == 0) {
+
+            size_type offset = p * nPrime_;
+            for (size_type i = 0; i < nPrime_; i++) {
+                if (L_[offset + i] != null_) {
+                    return i;
+                }
+            }
+
+        } else {
+
+            std::stack<ExtendedSubrowInfo> stack;
+            stack.emplace(nPrime_ / k_, nPrime_ / k_, p % (nPrime_ / k_), 0, k_ * (p / (nPrime_ / k_)), 0);
+
+            while (!stack.empty()) {
+
+                auto& cur = stack.top();
+
+                if (cur.j == k_) {
+                    stack.pop();
+                } else {
+
+                    if (cur.z >= T_.size()) {
+
+                        if (L_[cur.z - T_.size()] != null_) {
+                            return cur.dq;
+                        }
+
+                    } else {
+
+                        if (T_[cur.z]) {
+                            stack.emplace(cur.nr / k_, cur.nc / k_, cur.p % (cur.nr / k_), cur.dq, R_.rank(cur.z + 1) * k_ * k_ + k_ * (cur.p / (cur.nr / k_)), 0);
+                        }
+
+                    }
+
+                    cur.dq += cur.nc;
+                    cur.z++;
+                    cur.j++;
+
+                }
+
+            }
+        }
+
+        return nPrime_;
+
+    }
+
+    size_type firstSuccessorInit(size_type p) {
+
+        size_type pos = nPrime_;
+
+        if (!L_.empty()) {
+
+            size_type y = k_ * (p / (nPrime_ / k_));
+
+            for (size_type j = 0; j < k_ && pos == nPrime_; j++) {
+                pos = firstSuccessor(nPrime_ / k_, p % (nPrime_ / k_), (nPrime_ / k_) * j, y + j);
+            }
+
+        }
+
+        return pos;
+
+    }
+
+    size_type firstSuccessor(size_type n, size_type p, size_type q, size_type z) {
+
+        size_type pos = nPrime_;
+
+        if (z >= T_.size()) {
+
+            if (L_[z - T_.size()] != null_) {
+                pos = q;
+            }
+
+        } else {
+
+            if (T_[z]) {
+
+                size_type y = R_.rank(z + 1) * k_ * k_ + k_ * (p / (n / k_));
+
+                for (size_type j = 0; j < k_ && pos == nPrime_; j++) {
+                    pos = firstSuccessor(n / k_, p % (n / k_), q + (n / k_) * j, y + j);
+                }
+
+            }
+
+        }
+
+        return pos;
+
+    }
+
 
     /* getPredecessorElements() */
 
@@ -1847,6 +1953,11 @@ public:
 
         return succs;
 
+    }
+
+    size_type getFirstSuccessor(size_type i) override {
+//        return firstSuccessorInit(i);
+        return firstSuccessorPositionIterative(i);
     }
 
     std::vector<size_type> getPredecessors(size_type j) override {
@@ -2534,6 +2645,107 @@ private:
 
         }
 
+
+    }
+
+    /* getFirstSuccessor() */
+
+    size_type firstSuccessorPositionIterative(size_type p) {
+
+        if (L_.empty()) return nPrime_;
+
+        if (T_.size() == 0) {
+
+            size_type offset = p * nPrime_;
+            for (size_type i = 0; i < nPrime_; i++) {
+                if (L_[offset + i]) {
+                    return i;
+                }
+            }
+
+        } else {
+
+            std::stack<ExtendedSubrowInfo> stack;
+            stack.emplace(nPrime_ / k_, nPrime_ / k_, p % (nPrime_ / k_), 0, k_ * (p / (nPrime_ / k_)), 0);
+
+            while (!stack.empty()) {
+
+                auto& cur = stack.top();
+
+                if (cur.j == k_) {
+                    stack.pop();
+                } else {
+
+                    if (cur.z >= T_.size()) {
+
+                        if (L_[cur.z - T_.size()]) {
+                            return cur.dq;
+                        }
+
+                    } else {
+
+                        if (T_[cur.z]) {
+                            stack.emplace(cur.nr / k_, cur.nc / k_, cur.p % (cur.nr / k_), cur.dq, R_.rank(cur.z + 1) * k_ * k_ + k_ * (cur.p / (cur.nr / k_)), 0);
+                        }
+
+                    }
+
+                    cur.dq += cur.nc;
+                    cur.z++;
+                    cur.j++;
+
+                }
+
+            }
+        }
+
+        return nPrime_;
+
+    }
+
+    size_type firstSuccessorInit(size_type p) {
+
+        size_type pos = nPrime_;
+
+        if (!L_.empty()) {
+
+            size_type y = k_ * (p / (nPrime_ / k_));
+
+            for (size_type j = 0; j < k_ && pos == nPrime_; j++) {
+                pos = firstSuccessor(nPrime_ / k_, p % (nPrime_ / k_), (nPrime_ / k_) * j, y + j);
+            }
+
+        }
+
+        return pos;
+
+    }
+
+    size_type firstSuccessor(size_type n, size_type p, size_type q, size_type z) {
+
+        size_type pos = nPrime_;
+
+        if (z >= T_.size()) {
+
+            if (L_[z - T_.size()]) {
+                pos = q;
+            }
+
+        } else {
+
+            if (T_[z]) {
+
+                size_type y = R_.rank(z + 1) * k_ * k_ + k_ * (p / (n / k_));
+
+                for (size_type j = 0; j < k_ && pos == nPrime_; j++) {
+                    pos = firstSuccessor(n / k_, p % (n / k_), q + (n / k_) * j, y + j);
+                }
+
+            }
+
+        }
+
+        return pos;
 
     }
 

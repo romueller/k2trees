@@ -66,7 +66,7 @@ struct PartitionIndices {
 };
 
 
-// Parameters handed over in iterative versions of getting all positions in a row
+// parameters handed over in iterative versions of getting all positions in a row
 struct SubrowInfo {
 
     size_type dq;
@@ -81,6 +81,28 @@ struct SubrowInfo {
 
 };
 
+// parameters handed over in iterative versions of getting first positions in a row
+struct ExtendedSubrowInfo {
+
+    size_type nr;
+    size_type nc;
+    size_type p;
+    size_type dq;
+    size_type z;
+    size_type j;
+
+    ExtendedSubrowInfo(size_type nrr, size_type ncc, size_type pp, size_type dqq, size_type zz, size_type jj) {
+
+        nr = nrr;
+        nc = ncc;
+        p = pp;
+        dq = dqq;
+        z = zz;
+        j = jj;
+
+    }
+
+};
 
 
 size_type logK(const size_type n, const size_type b);

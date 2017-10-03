@@ -949,6 +949,8 @@ public:
 
     virtual std::vector<size_type> getSuccessors(size_type i) = 0;
 
+    virtual size_type getFirstSuccessor(size_type i) = 0;
+
     virtual std::vector<size_type> getPredecessors(size_type j) = 0;
 
     virtual positions_type getRange(size_type i1, size_type i2, size_type j1, size_type j2) = 0;

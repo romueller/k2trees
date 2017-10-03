@@ -131,6 +131,17 @@ public:
 
     }
 
+    size_type getFirst() override {
+
+        size_type min = -1;
+        for (auto i = 0; i < length_; i++) {
+            min = std::min(min, positions_[i]);
+        }
+
+        return min;
+
+    }
+
     std::vector<elem_type> getElementsInRange(size_type l, size_type r) override {
 
         std::vector<elem_type> elems;
@@ -381,6 +392,17 @@ public:
 
     elem_type getElement(size_type i) override {
         return std::find(positions_, positions_ + length_, i) != positions_ + length_;
+    }
+
+    size_type getFirst() override {
+
+        size_type min = -1;
+        for (auto i = 0; i < length_; i++) {
+            min = std::min(min, positions_[i]);
+        }
+
+        return min;
+
     }
 
     std::vector<elem_type> getElementsInRange(size_type l, size_type r) override {

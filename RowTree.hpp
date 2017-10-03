@@ -22,6 +22,8 @@ public:
 
     virtual elem_type getElement(size_type i) = 0;
 
+    virtual size_type getFirst() = 0;
+
     virtual std::vector<elem_type> getElementsInRange(size_type l, size_type r) = 0;
 
     virtual std::vector<size_type> getPositionsInRange(size_type l, size_type r) = 0;

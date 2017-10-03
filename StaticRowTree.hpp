@@ -201,6 +201,11 @@ public:
         return getInit(i);
     }
 
+    size_type getFirst() override {
+//        return getFirstInit();
+        return getFirstIterative();
+    }
+
     std::vector<elem_type> getElementsInRange(size_type l, size_type r) override {
 
         std::vector<elem_type> elems;
@@ -708,6 +713,112 @@ private:
         } else {
             return T_[z] ? get(n / k_, q % (n / k_), R_.rank(z + 1) * k_ + q / (n / k_)) : null_;
         }
+
+    }
+
+    /* getFirst() */
+
+    size_type getFirstIterative() {
+
+        if (L_.empty()) return nPrime_;
+
+        if (T_.size() == 0) {
+
+            for (size_type i = 0; i < nPrime_; i++) {
+                if (L_[i] != null_) {
+                    return i;
+                }
+            }
+
+        } else {
+
+            size_type n = nPrime_ / k_;
+            size_type dq = 0;
+            size_type z = 0;
+
+            while (z < T_.size()) {
+
+                if (T_[z]) {
+
+                    n /= k_;
+                    z = R_.rank(z + 1) * k_;
+
+                } else {
+
+                    dq += n;
+                    z++;
+
+                }
+
+            }
+
+            for (size_type offset = 0; offset < k_; offset++) {
+
+                if (L_[z - T_.size() + offset] != null_) {
+                    return dq + offset;
+                }
+
+            }
+
+        }
+
+        return nPrime_;
+
+    }
+
+    size_type getFirstInit() {
+
+        size_type pos = nPrime_;
+
+        if (!L_.empty()) {
+
+            for (size_type j = 0; j < k_ && pos == nPrime_; j++) {
+                pos = getFirst(
+                        nPrime_ / k_,
+                        0,
+                        nPrime_ / k_ - 1,
+                        (nPrime_ / k_) * j,
+                        j
+                );
+            }
+
+        }
+
+        return pos;
+
+    }
+
+    size_type getFirst(size_type n, size_type l, size_type r, size_type dq, size_type z) {
+
+        size_type pos = nPrime_;
+
+        if (z >= T_.size()) {
+
+            if (L_[z - T_.size()] != null_) {
+                pos = dq;
+            }
+
+        } else {
+
+            if (T_[z]) {
+
+                auto y = R_.rank(z + 1) * k_;
+
+                for (auto j = l / (n / k_); j <= r / (n / k_) && pos == nPrime_; j++) {
+                    pos = getFirst(
+                            n / k_,
+                            0,
+                            n / k_ - 1,
+                            dq + (n / k_) * j,
+                            y + j
+                    );
+                }
+
+            }
+
+        }
+
+        return pos;
 
     }
 
@@ -1397,6 +1508,11 @@ public:
 
     elem_type getElement(size_type i) override {
         return isNotNull(i);
+    }
+
+    size_type getFirst() override {
+//        return getFirstInit();
+        return getFirstIterative();
     }
 
     std::vector<elem_type> getElementsInRange(size_type l, size_type r) override {
@@ -2248,7 +2364,7 @@ private:
     }
 
 
-    /* getElement() */
+    /* setNull() */
 
     void setInit(size_type q) {
 
@@ -2267,6 +2383,112 @@ private:
                 set(n / k_, q % (n / k_), R_.rank(z + 1) * k_ + q / (n / k_));
             }
         }
+
+    }
+
+    /* getFirst() */
+
+    size_type getFirstIterative() {
+
+        if (L_.empty()) return nPrime_;
+
+        if (T_.size() == 0) {
+
+            for (size_type i = 0; i < nPrime_; i++) {
+                if (L_[i]) {
+                    return i;
+                }
+            }
+
+        } else {
+
+            size_type n = nPrime_ / k_;
+            size_type dq = 0;
+            size_type z = 0;
+
+            while (z < T_.size()) {
+
+                if (T_[z]) {
+
+                    n /= k_;
+                    z = R_.rank(z + 1) * k_;
+
+                } else {
+
+                    dq += n;
+                    z++;
+
+                }
+
+            }
+
+            for (size_type offset = 0; offset < k_; offset++) {
+
+                if (L_[z - T_.size() + offset]) {
+                    return dq + offset;
+                }
+
+            }
+
+        }
+
+        return nPrime_;
+
+    }
+
+    size_type getFirstInit() {
+
+        size_type pos = nPrime_;
+
+        if (!L_.empty()) {
+
+            for (size_type j = 0; j < k_ && pos == nPrime_; j++) {
+                pos = getFirst(
+                        nPrime_ / k_,
+                        0,
+                        nPrime_ / k_ - 1,
+                        (nPrime_ / k_) * j,
+                        j
+                );
+            }
+
+        }
+
+        return pos;
+
+    }
+
+    size_type getFirst(size_type n, size_type l, size_type r, size_type dq, size_type z) {
+
+        size_type pos = nPrime_;
+
+        if (z >= T_.size()) {
+
+            if (L_[z - T_.size()]) {
+                pos = dq;
+            }
+
+        } else {
+
+            if (T_[z]) {
+
+                auto y = R_.rank(z + 1) * k_;
+
+                for (auto j = l / (n / k_); j <= r / (n / k_) && pos == nPrime_; j++) {
+                    pos = getFirst(
+                            n / k_,
+                            0,
+                            n / k_ - 1,
+                            dq + (n / k_) * j,
+                            y + j
+                    );
+                }
+
+            }
+
+        }
+
+        return pos;
 
     }
 

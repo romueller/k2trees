@@ -299,6 +299,11 @@ public:
         return getInit(i);
     }
 
+    size_type getFirst() override {
+//        return getFirstInit();
+        return getFirstIterative();
+    }
+
     std::vector<elem_type> getElementsInRange(size_type l, size_type r) override {
 
         std::vector<elem_type> elems;
@@ -872,6 +877,123 @@ private:
         }
 
     }
+
+    /* getFirst() */
+
+    size_type getFirstIterative() {
+
+        if (L_.empty()) return nPrime_;
+
+        if (T_.size() == 0) {
+
+            for (size_type i = 0; i < nPrime_; i++) {
+                if (L_[i] != null_) {
+                    return i;
+                }
+            }
+
+        } else {
+
+            size_type k = (upperH_ > 0) ? upperK_ : lowerK_;
+            size_type level = 1;
+            size_type n = nPrime_ / k;
+            size_type dq = 0;
+            size_type z = 0;
+
+            while (z < T_.size()) {
+
+                if (T_[z]) {
+
+                    k = (level < upperH_) ? upperK_ : lowerK_;
+                    n /= k;
+                    z = (level >= upperH_) * upperLength_ + (R_.rank(z + 1) - (level >= upperH_) * (upperOnes_ + 1)) * k;
+                    level++;
+
+                } else {
+
+                    dq += n;
+                    z++;
+
+                }
+
+            }
+
+            k = (level < upperH_) ? upperK_ : lowerK_;
+            for (size_type offset = 0; offset < k; offset++) {
+
+                if (L_[z - T_.size() + offset] != null_) {
+                    return dq + offset;
+                }
+
+            }
+
+        }
+
+        return nPrime_;
+
+    }
+
+    size_type getFirstInit() {
+
+        size_type pos = nPrime_;
+
+        if (!L_.empty()) {
+
+            size_type k = (upperH_ > 0) ? upperK_ : lowerK_;
+
+            for (size_type j = 0; j < k && pos == nPrime_; j++) {
+                pos = getFirst(
+                        nPrime_ / k,
+                        0,
+                        nPrime_ / k - 1,
+                        (nPrime_ / k) * j,
+                        j,
+                        1
+                );
+            }
+
+        }
+
+        return pos;
+
+    }
+
+    size_type getFirst(size_type n, size_type l, size_type r, size_type dq, size_type z, size_type level) {
+
+        size_type pos = nPrime_;
+
+        if (z >= T_.size()) {
+
+            if (L_[z - T_.size()] != null_) {
+                pos = dq;
+            }
+
+        } else {
+
+            if (T_[z]) {
+
+                auto k = (level < upperH_) ? upperK_ : lowerK_;
+                auto y = (level >= upperH_) * upperLength_ + (R_.rank(z + 1) - (level >= upperH_) * (upperOnes_ + 1)) * k;
+
+                for (auto j = l / (n / k); j <= r / (n / k) && pos == nPrime_; j++) {
+                    pos = getFirst(
+                            n / k,
+                            0,
+                            n / k - 1,
+                            dq + (n / k) * j,
+                            y + j,
+                            level + 1
+                    );
+                }
+
+            }
+
+        }
+
+        return pos;
+
+    }
+
 
     /* getElementsInRange() */
 
@@ -1721,6 +1843,11 @@ public:
 
     elem_type getElement(size_type i) override {
         return isNotNull(i);
+    }
+
+    size_type getFirst() override {
+//        return getFirstInit();
+        return getFirstIterative();
     }
 
     std::vector<elem_type> getElementsInRange(size_type l, size_type r) override {
@@ -2689,6 +2816,122 @@ private:
             }
 
         }
+
+    }
+
+    /* getFirst() */
+
+    size_type getFirstIterative() {
+
+        if (L_.empty()) return nPrime_;
+
+        if (T_.size() == 0) {
+
+            for (size_type i = 0; i < nPrime_; i++) {
+                if (L_[i]) {
+                    return i;
+                }
+            }
+
+        } else {
+
+            size_type k = (upperH_ > 0) ? upperK_ : lowerK_;
+            size_type level = 1;
+            size_type n = nPrime_ / k;
+            size_type dq = 0;
+            size_type z = 0;
+
+            while (z < T_.size()) {
+
+                if (T_[z]) {
+
+                    k = (level < upperH_) ? upperK_ : lowerK_;
+                    n /= k;
+                    z = (level >= upperH_) * upperLength_ + (R_.rank(z + 1) - (level >= upperH_) * (upperOnes_ + 1)) * k;
+                    level++;
+
+                } else {
+
+                    dq += n;
+                    z++;
+
+                }
+
+            }
+
+            k = (level < upperH_) ? upperK_ : lowerK_;
+            for (size_type offset = 0; offset < k; offset++) {
+
+                if (L_[z - T_.size() + offset]) {
+                    return dq + offset;
+                }
+
+            }
+
+        }
+
+        return nPrime_;
+
+    }
+
+    size_type getFirstInit() {
+
+        size_type pos = nPrime_;
+
+        if (!L_.empty()) {
+
+            size_type k = (upperH_ > 0) ? upperK_ : lowerK_;
+
+            for (size_type j = 0; j < k && pos == nPrime_; j++) {
+                pos = getFirst(
+                        nPrime_ / k,
+                        0,
+                        nPrime_ / k - 1,
+                        (nPrime_ / k) * j,
+                        j,
+                        1
+                );
+            }
+
+        }
+
+        return pos;
+
+    }
+
+    size_type getFirst(size_type n, size_type l, size_type r, size_type dq, size_type z, size_type level) {
+
+        size_type pos = nPrime_;
+
+        if (z >= T_.size()) {
+
+            if (L_[z - T_.size()]) {
+                pos = dq;
+            }
+
+        } else {
+
+            if (T_[z]) {
+
+                auto k = (level < upperH_) ? upperK_ : lowerK_;
+                auto y = (level >= upperH_) * upperLength_ + (R_.rank(z + 1) - (level >= upperH_) * (upperOnes_ + 1)) * k;
+
+                for (auto j = l / (n / k); j <= r / (n / k) && pos == nPrime_; j++) {
+                    pos = getFirst(
+                            n / k,
+                            0,
+                            n / k - 1,
+                            dq + (n / k) * j,
+                            y + j,
+                            level + 1
+                    );
+                }
+
+            }
+
+        }
+
+        return pos;
 
     }
 

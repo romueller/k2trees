@@ -526,6 +526,11 @@ public:
         return getSuccessorPositions(i);
     }
 
+    size_type getFirstSuccessor(size_type i) override {
+//        return firstSuccessorInit(i);
+        return firstSuccessorPositionIterative(i);
+    }
+
     std::vector<size_type> getPredecessors(size_type j) override {
         return getPredecessorPositions(j);
     }
@@ -1507,6 +1512,107 @@ private:
 
     }
 
+    /* getFirstSuccessor() */
+
+    size_type firstSuccessorPositionIterative(size_type p) {
+
+        if (L_.empty()) return numCols_;
+
+        if (T_.size() == 0) {
+
+            size_type offset = p * numCols_;
+            for (size_type i = 0; i < numCols_; i++) {
+                if (L_[offset + i] != null_) {
+                    return i;
+                }
+            }
+
+        } else {
+
+            std::stack<ExtendedSubrowInfo> stack;
+            stack.emplace(numRows_ / kr_, numCols_ / kc_, p % (numRows_ / kr_), 0, kc_ * (p / (numRows_ / kr_)), 0);
+
+            while (!stack.empty()) {
+
+                auto& cur = stack.top();
+
+                if (cur.j == kc_) {
+                    stack.pop();
+                } else {
+
+                    if (cur.z >= T_.size()) {
+
+                        if (L_[cur.z - T_.size()] != null_) {
+                            return cur.dq;
+                        }
+
+                    } else {
+
+                        if (T_[cur.z]) {
+                            stack.emplace(cur.nr / kr_, cur.nc / kc_, cur.p % (cur.nr / kr_), cur.dq, R_.rank(cur.z + 1) * kr_ * kc_ + kc_ * (cur.p / (cur.nr / kr_)), 0);
+                        }
+
+                    }
+
+                    cur.dq += cur.nc;
+                    cur.z++;
+                    cur.j++;
+
+                }
+
+            }
+        }
+
+        return numCols_;
+
+    }
+
+    size_type firstSuccessorInit(size_type p) {
+
+        size_type pos = numCols_;
+
+        if (!L_.empty()) {
+
+            size_type y = kc_ * (p / (numRows_ / kr_));
+
+            for (size_type j = 0; j < kc_ && pos == numCols_; j++) {
+                pos = firstSuccessor(numRows_ / kr_, numCols_ / kc_, p % (numRows_ / kr_), (numCols_ / kc_) * j, y + j);
+            }
+
+        }
+
+        return pos;
+
+    }
+
+    size_type firstSuccessor(size_type numRows, size_type numCols, size_type p, size_type q, size_type z) {
+
+        size_type pos = numCols_;
+
+        if (z >= T_.size()) {
+
+            if (L_[z - T_.size()] != null_) {
+                pos = q;
+            }
+
+        } else {
+
+            if (T_[z]) {
+
+                size_type y = R_.rank(z + 1) * kr_ * kc_ + kc_ * (p / (numRows / kr_));
+
+                for (size_type j = 0; j < kc_ && pos == numCols_; j++) {
+                    pos = firstSuccessor(numRows / kr_, numCols / kc_, p % (numRows / kr_), q + (numCols / kc_) * j, y + j);
+                }
+
+            }
+
+        }
+
+        return pos;
+
+    }
+
     /* getPredecessorElements() */
 
     void predecessorsElemInit(std::vector<elem_type>& preds, size_type q) {
@@ -2351,6 +2457,11 @@ public:
 
         return succs;
 
+    }
+
+    size_type getFirstSuccessor(size_type i) override {
+//        return firstSuccessorInit(i);
+        return firstSuccessorPositionIterative(i);
     }
 
     std::vector<size_type> getPredecessors(size_type j) override {
@@ -3235,6 +3346,107 @@ private:
 
         }
 
+
+    }
+
+    /* getFirstSuccessor() */
+
+    size_type firstSuccessorPositionIterative(size_type p) {
+
+        if (L_.empty()) return numCols_;
+
+        if (T_.size() == 0) {
+
+            size_type offset = p * numCols_;
+            for (size_type i = 0; i < numCols_; i++) {
+                if (L_[offset + i]) {
+                    return i;
+                }
+            }
+
+        } else {
+
+            std::stack<ExtendedSubrowInfo> stack;
+            stack.emplace(numRows_ / kr_, numCols_ / kc_, p % (numRows_ / kr_), 0, kc_ * (p / (numRows_ / kr_)), 0);
+
+            while (!stack.empty()) {
+
+                auto& cur = stack.top();
+
+                if (cur.j == kc_) {
+                    stack.pop();
+                } else {
+
+                    if (cur.z >= T_.size()) {
+
+                        if (L_[cur.z - T_.size()]) {
+                            return cur.dq;
+                        }
+
+                    } else {
+
+                        if (T_[cur.z]) {
+                            stack.emplace(cur.nr / kr_, cur.nc / kc_, cur.p % (cur.nr / kr_), cur.dq, R_.rank(cur.z + 1) * kr_ * kc_ + kc_ * (cur.p / (cur.nr / kr_)), 0);
+                        }
+
+                    }
+
+                    cur.dq += cur.nc;
+                    cur.z++;
+                    cur.j++;
+
+                }
+
+            }
+        }
+
+        return numCols_;
+
+    }
+
+    size_type firstSuccessorInit(size_type p) {
+
+        size_type pos = numCols_;
+
+        if (!L_.empty()) {
+
+            size_type y = kc_ * (p / (numRows_ / kr_));
+
+            for (size_type j = 0; j < kc_ && pos == numCols_; j++) {
+                pos = firstSuccessor(numRows_ / kr_, numCols_ / kc_, p % (numRows_ / kr_), (numCols_ / kc_) * j, y + j);
+            }
+
+        }
+
+        return pos;
+
+    }
+
+    size_type firstSuccessor(size_type numRows, size_type numCols, size_type p, size_type q, size_type z) {
+
+        size_type pos = numCols_;
+
+        if (z >= T_.size()) {
+
+            if (L_[z - T_.size()]) {
+                pos = q;
+            }
+
+        } else {
+
+            if (T_[z]) {
+
+                size_type y = R_.rank(z + 1) * kr_ * kc_ + kc_ * (p / (numRows / kr_));
+
+                for (size_type j = 0; j < kc_ && pos == numCols_; j++) {
+                    pos = firstSuccessor(numRows / kr_, numCols / kc_, p % (numRows / kr_), q + (numCols / kc_) * j, y + j);
+                }
+
+            }
+
+        }
+
+        return pos;
 
     }
 

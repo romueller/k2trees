@@ -1150,6 +1150,41 @@ public:
         return getSuccessorPositions(i);
     }
 
+    size_type getFirstSuccessor(size_type i) override {
+
+        size_type pos = numCols_;
+
+        if (hc_ > hr_) {
+
+            size_type offset = 0;
+            for (size_type k = 0; k < numPartitions_ && pos == numCols_; k++, offset += partitionSize_) {
+
+                auto p = partitions_[k];
+                if (p != 0) {
+
+                    auto tmp = p->getFirstSuccessor(i);
+                    if (tmp != p->getNumCols()) {
+                        pos = offset + tmp;
+                    }
+
+                }
+
+            }
+
+        } else {
+
+            auto pis = determineIndices(i, 0);
+            auto p = partitions_[pis.partition];
+            if (p != 0) {
+                pos = p->getFirstSuccessor(pis.row);
+            }
+
+        }
+
+        return pos;
+
+    }
+
     std::vector<size_type> getPredecessors(size_type j) override {
         return getPredecessorPositions(j);
     }
@@ -1579,6 +1614,41 @@ public:
         }
 
         return succs;
+
+    }
+
+    size_type getFirstSuccessor(size_type i) override {
+
+        size_type pos = numCols_;
+
+        if (hc_ > hr_) {
+
+            size_type offset = 0;
+            for (size_type k = 0; k < numPartitions_ && pos == numCols_; k++, offset += partitionSize_) {
+
+                auto p = partitions_[k];
+                if (p != 0) {
+
+                    auto tmp = p->getFirstSuccessor(i);
+                    if (tmp != p->getNumCols()) {
+                        pos = offset + tmp;
+                    }
+
+                }
+
+            }
+
+        } else {
+
+            auto pis = determineIndices(i, 0);
+            auto p = partitions_[pis.partition];
+            if (p != 0) {
+                pos = p->getFirstSuccessor(pis.row);
+            }
+
+        }
+
+        return pos;
 
     }
 

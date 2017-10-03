@@ -135,6 +135,25 @@ public:
 
     }
 
+    MiniK2Tree(const typename pairs_type::iterator& first, const typename pairs_type::iterator& last, const size_type x, const size_type y, const elem_type null = elem_type()) {
+
+        null_ = null;
+
+        length_ = last - first;
+        positions_ = new std::pair<size_type, size_type>[length_];
+        values_ = new elem_type[length_];
+
+        size_type pos = 0;
+        for (auto iter = first; iter != last; iter++) {
+
+            positions_[pos] = std::make_pair(iter->row - x, iter->col - y);
+            values_[pos++] = iter->val;
+            pos++;
+
+        }
+
+    }
+
     ~MiniK2Tree() {
 
         delete[] positions_;
@@ -372,6 +391,19 @@ public:
 
     std::vector<size_type> getSuccessors(size_type i) override {
         return getSuccessorPositions(i);
+    }
+
+    size_type getFirstSuccessor(size_type i) override {
+
+        size_type min = getNumCols();
+        for (size_type k = 0; k < length_; k++) {
+            if (positions_[k].first == i) {
+                min = std::min(min, positions_[k].second);
+            }
+        }
+
+        return min;
+
     }
 
     std::vector<size_type> getPredecessors(size_type j) override {
@@ -799,6 +831,19 @@ public:
 
     std::vector<size_type> getSuccessors(size_type i) override {
         return getSuccessorPositions(i);
+    }
+
+    size_type getFirstSuccessor(size_type i) override {
+
+        size_type min = getNumCols();
+        for (size_type k = 0; k < length_; k++) {
+            if (positions_[k].first == i) {
+                min = std::min(min, positions_[k].second);
+            }
+        }
+
+        return min;
+
     }
 
     std::vector<size_type> getPredecessors(size_type j) override {
