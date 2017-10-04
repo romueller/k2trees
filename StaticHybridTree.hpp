@@ -1,3 +1,24 @@
+/*
+ * Copyright (C) 2017 Robert Mueller
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ * Contact: Robert Mueller <romueller@techfak.uni-bielefeld.de>
+ * Faculty of Technology, Bielefeld University,
+ * PO box 100131, DE-33501 Bielefeld, Germany
+ */
+
 #ifndef K2TREES_STATICHYBRIDTREE_HPP
 #define K2TREES_STATICHYBRIDTREE_HPP
 
@@ -6,6 +27,18 @@
 #include "K2Tree.hpp"
 #include "Utility.hpp"
 
+/**
+ * Hybrid-arity implementation of K2Tree.
+ *
+ * Uses one of two arities (upperK, lowerK) depending on the level,
+ * but it is the same for both rows and columns on the same level.
+ * There is at least one level using lowerK and the first at most upperH
+ * levels use upperK.
+ * The described relation matrix is quadratic with an edge length of nPrime,
+ * where nPrime is a product of powers of upperK and lowerK that satisfies
+ * the requested number of levels and exceeds the row / column numbers
+ * of all relation pairs.
+ */
 template<typename E>
 class HybridK2Tree : public virtual K2Tree<E> {
 
@@ -63,7 +96,11 @@ public:
 
     }
 
-    // assumes that all rows of mat are equally long
+    /**
+     * Matrix-based constructor (based on section 3.3.1. of Brisaboa et al.)
+     *
+     * Assumes that all rows of mat are equally long.
+     */
     HybridK2Tree(const matrix_type& mat, const size_type upperK, const size_type upperH, const size_type lowerK, const elem_type null = elem_type()) {
 
         null_ = null;
@@ -122,6 +159,11 @@ public:
 
     }
 
+    /**
+     * List-of-lists-based constructor (based on sections 3.3.2. - 3.3.4. of Brisaboa et al.)
+     *
+     * The actually used method depends on parameter mode.
+     */
     HybridK2Tree(const std::vector<list_type>& lists, const size_type upperK, const size_type upperH, const size_type lowerK, const int mode, const elem_type null = elem_type()) {
 
         null_ = null;
@@ -152,7 +194,7 @@ public:
 
         switch (mode) {
 
-            case 0: {
+            case 0: { // 3.3.2.
 
                 std::vector<std::vector<bool>> levels(h_ - 1);
                 std::vector<typename list_type::const_iterator> cursors;
@@ -197,7 +239,7 @@ public:
 
             }
 
-            case 1: {
+            case 1: { // 3.3.3.
 
                 buildFromListsViaTree(lists);
 
@@ -207,7 +249,7 @@ public:
 
             }
 
-            case 2: {
+            case 2: { // 3.3.4.
 
                 buildFromListsDynamicBitmaps(lists);
 
@@ -226,6 +268,9 @@ public:
 
     }
 
+    /**
+     * List-of-pairs-based constructor (based on section 3.3.5. of Brisaboa et al.)
+     */
     HybridK2Tree(pairs_type& pairs, const size_type upperK, const size_type upperH, const size_type lowerK, const elem_type null = elem_type()) {
 
         null_ = null;
@@ -260,26 +305,32 @@ public:
     }
 
 
+    // returns the arity of the upper part of the K2Tree
     size_type getUpperK() {
         return upperK_;
     }
 
+    // returns the arity of the lower part of the K2Tree
     size_type getLowerK() {
         return lowerK_;
     }
 
+    // returns the height of the upper part of the K2Tree
     size_type getUpperH() {
         return upperH_;
     }
 
+    // returns the number of 1-bits in the upper part of the K2Tree
     size_type getUpperOnes() {
         return upperOnes_;
     }
 
+    // returns the number of bits in the upper part of the K2Tree
     size_type getUpperLength() {
         return upperLength_;
     }
 
+    // returns the height of the K2Tree
     size_type getH() {
         return upperK_;
     }
@@ -425,7 +476,6 @@ public:
         return new HybridK2Tree<elem_type>(*this);
     }
 
-
     void print(bool all = false) override {
 
         std::cout << "### Parameters ###" << std::endl;
@@ -456,8 +506,20 @@ public:
 
     }
 
+    // note: can "invalidate" the data structure (containsLink() probably won't work correctly afterwards)
+    void setNull(size_type i, size_type j) override {
+        setInit(i, j);
+    }
 
-    // method aliases using "relation nomenclature"
+    size_type getFirstSuccessor(size_type i) override {
+//        return firstSuccessorInit(i);
+        return firstSuccessorPositionIterative(i);
+    }
+
+
+    /*
+     * Method aliases using "relation nomenclature" (similar to the names proposed by Brisaboa et al.)
+     */
 
     bool areRelated(size_type i, size_type j) override {
         return isNotNull(i, j);
@@ -465,11 +527,6 @@ public:
 
     std::vector<size_type> getSuccessors(size_type i) override {
         return getSuccessorPositions(i);
-    }
-
-    size_type getFirstSuccessor(size_type i) override {
-//        return firstSuccessorInit(i);
-        return firstSuccessorPositionIterative(i);
     }
 
     std::vector<size_type> getPredecessors(size_type j) override {
@@ -489,25 +546,26 @@ public:
     }
 
 
-    // note: can "invalidate" the data structure (containsLink() probably won't work correctly afterwards)
-    void setNull(size_type i, size_type j) override {
-        setInit(i, j);
-    }
 
 private:
+    // representation of all but the last levels of the K2Tree (internal structure)
     bit_vector_type T_;
+
+    // representation of the last level of the K2Tree (actual values of the relation)
     std::vector<elem_type> L_;
+
+    // rank data structure for navigation in T_
     rank_type R_;
 
-    size_type upperK_;
-    size_type lowerK_;
-    size_type upperH_;
-    size_type upperOnes_;
-    size_type upperLength_;
-    size_type h_;
-    size_type nPrime_;
+    size_type upperK_; // arity in the upper part of the K2Tree
+    size_type lowerK_; // arity in the lower part of the K2Tree
+    size_type upperH_; // height of the upper part of the K2Tree
+    size_type upperOnes_; // number of ones in the upper part in T
+    size_type upperLength_; // length of the upper part in T
+    size_type h_; // height of the K2Tree
+    size_type nPrime_; // edge length of the represented relation matrix
 
-    elem_type null_;
+    elem_type null_; // null element
 
 
     /* helper method for construction from relation matrix */
@@ -1958,6 +2016,13 @@ private:
 
 };
 
+
+/**
+ * Bool specialisation of HybridK2Tree.
+ *
+ * Has the same characteristics as the general implementation above,
+ * but makes use of some simplifications since the only non-null value is 1 / true.
+ */
 template<>
 class HybridK2Tree<bool> : public virtual K2Tree<bool> {
 
@@ -2015,7 +2080,11 @@ public:
 
     }
 
-    // assumes that all rows of mat are equally long
+    /**
+     * Matrix-based constructor (based on section 3.3.1. of Brisaboa et al.)
+     *
+     * Assumes that all rows of mat are equally long.
+     */
     HybridK2Tree(const matrix_type& mat, const size_type upperK, const size_type upperH, const size_type lowerK) {
 
         null_ = false;
@@ -2079,6 +2148,11 @@ public:
 
     }
 
+    /**
+     * List-of-lists-based constructor (based on sections 3.3.2. - 3.3.4. of Brisaboa et al.)
+     *
+     * The actually used method depends on parameter mode.
+     */
     HybridK2Tree(const RelationLists& lists, const size_type upperK, const size_type upperH, const size_type lowerK, const int mode) {
 
         null_ = false;
@@ -2109,7 +2183,7 @@ public:
 
         switch (mode) {
 
-            case 0: {
+            case 0: { // 3.3.2.
 
                 std::vector<std::vector<bool>> levels(h_);
                 std::vector<RelationList::const_iterator> cursors;
@@ -2159,7 +2233,7 @@ public:
 
             }
 
-            case 1: {
+            case 1: { // 3.3.3.
 
                 buildFromListsViaTree(lists);
 
@@ -2169,7 +2243,7 @@ public:
 
             }
 
-            case 2: {
+            case 2: { // 3.3.4.
 
                 buildFromListsDynamicBitmaps(lists);
 
@@ -2188,6 +2262,9 @@ public:
 
     }
 
+    /**
+     * List-of-pairs-based constructor (based on section 3.3.5. of Brisaboa et al.)
+     */
     HybridK2Tree(positions_type& pairs, const size_type upperK, const size_type upperH, const size_type lowerK) {
 
         null_ = false;
@@ -2222,26 +2299,32 @@ public:
     }
 
 
+    // returns the arity of the upper part of the K2Tree
     size_type getUpperK() {
         return upperK_;
     }
 
+    // returns the arity of the lower part of the K2Tree
     size_type getLowerK() {
         return lowerK_;
     }
 
+    // returns the height of the upper part of the K2Tree
     size_type getUpperH() {
         return upperH_;
     }
 
+    // returns the number of 1-bits in the upper part of the K2Tree
     size_type getUpperOnes() {
         return upperOnes_;
     }
 
+    // returns the number of bits in the upper part of the K2Tree
     size_type getUpperLength() {
         return upperLength_;
     }
 
+    // returns the height of the K2Tree
     size_type getH() {
         return upperK_;
     }
@@ -2271,11 +2354,6 @@ public:
 
         return succs;
 
-    }
-
-    size_type getFirstSuccessor(size_type i) override {
-//        return firstSuccessorInit(i);
-        return firstSuccessorPositionIterative(i);
     }
 
     std::vector<size_type> getPredecessors(size_type j) override {
@@ -2314,7 +2392,9 @@ public:
     }
 
 
-    // general methods for completeness' sake (are redundant / useless for bool)
+    /*
+     * General methods for completeness' sake (are redundant / useless for bool)
+     */
 
     bool isNotNull(size_type i, size_type j) override {
         return areRelated(i, j);
@@ -2422,7 +2502,6 @@ public:
         return new HybridK2Tree<elem_type>(*this);
     }
 
-
     void print(bool all = false) override {
 
         std::cout << "### Parameters ###" << std::endl;
@@ -2453,27 +2532,37 @@ public:
 
     }
 
-
     // note: can "invalidate" the data structure (containsLink() probably won't work correctly afterwards)
     void setNull(size_type i, size_type j) override {
         setInit(i, j);
     }
 
+    size_type getFirstSuccessor(size_type i) override {
+//        return firstSuccessorInit(i);
+        return firstSuccessorPositionIterative(i);
+    }
+
+
 
 private:
+    // representation of all but the last levels of the K2Tree (internal structure)
     bit_vector_type T_;
+
+    // representation of the last level of the K2Tree (actual values of the relation)
     bit_vector_type L_;
+
+    // rank data structure for navigation in T_
     rank_type R_;
 
-    size_type upperK_;
-    size_type lowerK_;
-    size_type upperH_;
-    size_type upperOnes_;
-    size_type upperLength_;
-    size_type h_;
-    size_type nPrime_;
+    size_type upperK_; // arity in the upper part of the K2Tree
+    size_type lowerK_; // arity in the lower part of the K2Tree
+    size_type upperH_; // height of the upper part of the K2Tree
+    size_type upperOnes_; // number of ones in the upper part in T
+    size_type upperLength_; // length of the upper part in T
+    size_type h_; // height of the K2Tree
+    size_type nPrime_; // edge length of the represented relation matrix
 
-    elem_type null_;
+    elem_type null_; // null element
 
 
     /* helper method for construction from relation matrix */

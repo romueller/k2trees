@@ -1,3 +1,24 @@
+/*
+ * Copyright (C) 2017 Robert Mueller
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ * Contact: Robert Mueller <romueller@techfak.uni-bielefeld.de>
+ * Faculty of Technology, Bielefeld University,
+ * PO box 100131, DE-33501 Bielefeld, Germany
+ */
+
 #ifndef K2TREES_STATICUNEVENRECTANGULARTREE_HPP
 #define K2TREES_STATICUNEVENRECTANGULARTREE_HPP
 
@@ -8,6 +29,16 @@
 #include "StaticRowTree.hpp"
 #include "Utility.hpp"
 
+/**
+ * Uneven rectangular implementation of K2Tree.
+ *
+ * Uses two different arities for rows and columns (kr, kc) and allows for a different
+ * number of levels over rows and columns. This effectively leads to a partitioning
+ * of the whole relation matrix into several KrKcTree instances.
+ * The described relation matrix is rectangular with edge lengths of numRows and numCols,
+ * where numRows (numCols) is the smallest power of kr (kc) that exceeds the row (column) numbers
+ * of all relation pairs.
+ */
 template<typename E>
 class UnevenKrKcTree : public virtual K2Tree<E> {
 
@@ -76,7 +107,11 @@ public:
 
     }
 
-    // assumes that all rows of mat are equally long
+    /**
+     * Matrix-based constructor (based on section 3.3.1. of Brisaboa et al.)
+     *
+     * Assumes that all rows of mat are equally long.
+     */
     UnevenKrKcTree(const matrix_type& mat, const size_type kr, const size_type kc, const elem_type null = elem_type()) {
 
         null_ = null;
@@ -127,6 +162,11 @@ public:
 
     }
 
+    /**
+     * List-of-lists-based constructor (based on sections 3.3.2. - 3.3.4. of Brisaboa et al.)
+     *
+     * The actually used method for the partitions depends on parameter mode.
+     */
     UnevenKrKcTree(const std::vector<list_type>& lists, const size_type kr, const size_type kc, const int mode, const elem_type null = elem_type()) {
 
         null_ = null;
@@ -185,6 +225,9 @@ public:
 
     }
 
+    /**
+     * List-of-pairs-based constructor (based on section 3.3.5. of Brisaboa et al.)
+     */
     UnevenKrKcTree(pairs_type& pairs, const size_type kr, const size_type kc, const elem_type null = elem_type()) {
 
         null_ = null;
@@ -261,18 +304,22 @@ public:
     }
 
 
+    // returns the row height of the K2Tree
     size_type getHr() {
         return hr_;
     }
 
+    // returns the column height of the K2Tree
     size_type getHc() {
         return hc_;
     }
 
+    // returns the row arity of the K2Tree
     size_type getKr() {
         return kr_;
     }
 
+    // returns the column arity of the K2Tree
     size_type getKc() {
         return kc_;
     }
@@ -1107,7 +1154,6 @@ public:
         return new UnevenKrKcTree<elem_type>(*this);
     }
 
-
     void print(bool all = false) override {
 
         std::cout << "### Parameters ###" << std::endl;
@@ -1139,15 +1185,16 @@ public:
 
     }
 
+    // note: can "invalidate" the data structure (containsLink() probably won't work correctly afterwards)
+    void setNull(size_type i, size_type j) override {
 
-    // method aliases using "relation nomenclature"
+        auto pis = determineIndices(i, j);
+        auto p = partitions_[pis.partition];
 
-    bool areRelated(size_type i, size_type j) override {
-        return isNotNull(i, j);
-    }
+        if (p != 0) {
+            p->setNull(pis.row, pis.col);
+        }
 
-    std::vector<size_type> getSuccessors(size_type i) override {
-        return getSuccessorPositions(i);
     }
 
     size_type getFirstSuccessor(size_type i) override {
@@ -1185,6 +1232,19 @@ public:
 
     }
 
+
+    /*
+     * Method aliases using "relation nomenclature" (similar to the names proposed by Brisaboa et al.)
+     */
+
+    bool areRelated(size_type i, size_type j) override {
+        return isNotNull(i, j);
+    }
+
+    std::vector<size_type> getSuccessors(size_type i) override {
+        return getSuccessorPositions(i);
+    }
+
     std::vector<size_type> getPredecessors(size_type j) override {
         return getPredecessorPositions(j);
     }
@@ -1202,32 +1262,20 @@ public:
     }
 
 
-    // note: can "invalidate" the data structure (containsLink() probably won't work correctly afterwards)
-    void setNull(size_type i, size_type j) override {
-
-        auto pis = determineIndices(i, j);
-        auto p = partitions_[pis.partition];
-
-        if (p != 0) {
-            p->setNull(pis.row, pis.col);
-        }
-
-    }
-
 
 private:
-    size_type hr_;
-    size_type hc_;
-    size_type kr_;
-    size_type kc_;
-    size_type numRows_;
-    size_type numCols_;
+    size_type hr_; // row height of the K2Tree
+    size_type hc_; // column height of the K2Tree
+    size_type kr_; // row arity of the K2Tree
+    size_type kc_; // column arity of the K2Tree
+    size_type numRows_; // number of rows in the represented relation matrix
+    size_type numCols_; // number of columns in the represented relation matrix
 
-    KrKcTree<elem_type>** partitions_;
-    size_type partitionSize_;
-    size_type numPartitions_;
+    KrKcTree<elem_type>** partitions_; // representations of the partitions / submatrices
+    size_type partitionSize_; // number of rows (columns) per partition in a vertical (horizontal) partitioning
+    size_type numPartitions_; // number of partitions
 
-    elem_type null_;
+    elem_type null_; // null element
 
 
     /* helper methods for mapping (overall) indices to positions in the partitions */
@@ -1288,8 +1336,14 @@ private:
 };
 
 
+/**
+ * Bool specialisation of UnevenKrKcTree.
+ *
+ * Has the same characteristics as the general implementation above,
+ * but makes use of some simplifications since the only non-null value is 1 / true.
+ */
 template<>
-class UnevenKrKcTree<bool> : public virtual K2Tree<bool> {// can handle non-quadratic relation matrices and width / heights that are no power of k
+class UnevenKrKcTree<bool> : public virtual K2Tree<bool> {
 
 public:
     typedef bool elem_type;
@@ -1356,7 +1410,11 @@ public:
 
     }
 
-    // assumes that all rows of mat are equally long
+    /**
+     * Matrix-based constructor (based on section 3.3.1. of Brisaboa et al.)
+     *
+     * Assumes that all rows of mat are equally long.
+     */
     UnevenKrKcTree(const matrix_type& mat, const size_type kr, const size_type kc) {
 
         null_ = false;
@@ -1407,6 +1465,11 @@ public:
 
     }
 
+    /**
+     * List-of-lists-based constructor (based on sections 3.3.2. - 3.3.4. of Brisaboa et al.)
+     *
+     * The actually used method for the partitions depends on parameter mode.
+     */
     UnevenKrKcTree(const RelationLists& lists, const size_type kr, const size_type kc, const int mode) {
 
         null_ = false;
@@ -1465,6 +1528,9 @@ public:
 
     }
 
+    /**
+     * List-of-pairs-based constructor (based on section 3.3.5. of Brisaboa et al.)
+     */
     UnevenKrKcTree(positions_type& pairs, const size_type kr, const size_type kc) {
 
         null_ = false;
@@ -1541,18 +1607,22 @@ public:
     }
 
 
+    // returns the row height of the K2Tree
     size_type getHr() {
         return hr_;
     }
 
+    // returns the column height of the K2Tree
     size_type getHc() {
         return hc_;
     }
 
+    // returns the row arity of the K2Tree
     size_type getKr() {
         return kr_;
     }
 
+    // returns the column arity of the K2Tree
     size_type getKc() {
         return kc_;
     }
@@ -1614,41 +1684,6 @@ public:
         }
 
         return succs;
-
-    }
-
-    size_type getFirstSuccessor(size_type i) override {
-
-        size_type pos = numCols_;
-
-        if (hc_ > hr_) {
-
-            size_type offset = 0;
-            for (size_type k = 0; k < numPartitions_ && pos == numCols_; k++, offset += partitionSize_) {
-
-                auto p = partitions_[k];
-                if (p != 0) {
-
-                    auto tmp = p->getFirstSuccessor(i);
-                    if (tmp != p->getNumCols()) {
-                        pos = offset + tmp;
-                    }
-
-                }
-
-            }
-
-        } else {
-
-            auto pis = determineIndices(i, 0);
-            auto p = partitions_[pis.partition];
-            if (p != 0) {
-                pos = p->getFirstSuccessor(pis.row);
-            }
-
-        }
-
-        return pos;
 
     }
 
@@ -1907,7 +1942,9 @@ public:
     }
 
 
-    // general methods for completeness' sake (are redundant / useless for bool)
+    /*
+     * General methods for completeness' sake (are redundant / useless for bool)
+     */
 
     bool isNotNull(size_type i, size_type j) override {
         return areRelated(i, j);
@@ -2014,7 +2051,6 @@ public:
         return new UnevenKrKcTree<elem_type>(*this);
     }
 
-
     void print(bool all = false) override {
 
         std::cout << "### Parameters ###" << std::endl;
@@ -2046,7 +2082,6 @@ public:
 
     }
 
-
     // note: can "invalidate" the data structure (containsLink() probably won't work correctly afterwards)
     void setNull(size_type i, size_type j) override {
 
@@ -2059,20 +2094,56 @@ public:
 
     }
 
+    size_type getFirstSuccessor(size_type i) override {
+
+        size_type pos = numCols_;
+
+        if (hc_ > hr_) {
+
+            size_type offset = 0;
+            for (size_type k = 0; k < numPartitions_ && pos == numCols_; k++, offset += partitionSize_) {
+
+                auto p = partitions_[k];
+                if (p != 0) {
+
+                    auto tmp = p->getFirstSuccessor(i);
+                    if (tmp != p->getNumCols()) {
+                        pos = offset + tmp;
+                    }
+
+                }
+
+            }
+
+        } else {
+
+            auto pis = determineIndices(i, 0);
+            auto p = partitions_[pis.partition];
+            if (p != 0) {
+                pos = p->getFirstSuccessor(pis.row);
+            }
+
+        }
+
+        return pos;
+
+    }
+
+
 
 private:
-    size_type hr_;
-    size_type hc_;
-    size_type kr_;
-    size_type kc_;
-    size_type numRows_;
-    size_type numCols_;
+    size_type hr_; // row height of the K2Tree
+    size_type hc_; // column height of the K2Tree
+    size_type kr_; // row arity of the K2Tree
+    size_type kc_; // column arity of the K2Tree
+    size_type numRows_; // number of rows in the represented relation matrix
+    size_type numCols_; // number of columns in the represented relation matrix
 
-    KrKcTree<elem_type>** partitions_;
-    size_type partitionSize_;
-    size_type numPartitions_;
+    KrKcTree<elem_type>** partitions_; // representations of the partitions / submatrices
+    size_type partitionSize_; // number of rows (columns) per partition in a vertical (horizontal) partitioning
+    size_type numPartitions_; // number of partitions
 
-    elem_type null_;
+    elem_type null_; // null element
 
 
     /* helper methods for mapping (overall) indices to positions in the partitions */

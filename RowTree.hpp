@@ -1,50 +1,100 @@
+/*
+ * Copyright (C) 2017 Robert Mueller
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ * Contact: Robert Mueller <romueller@techfak.uni-bielefeld.de>
+ * Faculty of Technology, Bielefeld University,
+ * PO box 100131, DE-33501 Bielefeld, Germany
+ */
+
 #ifndef K2TREES_ROWTREE_HPP
 #define K2TREES_ROWTREE_HPP
 
 #include "Utility.hpp"
 
+/**
+ * Representation of a (weighted / valued) subset of a universe.
+ * One-dimensional adaptation of K2Tree.
+ *
+ * A RowTree of length n describes a subset S of the universe [0 : n - 1].
+ *
+ * The weights / values of an entry in the relation are of type E
+ * and one value is designated the null element ("element is not in the set").
+ *
+ * The data structure is static (with the exception of the setNull() method).
+ */
 template<typename E>
 class RowTree {
 
 public:
+    // weights / values
     typedef E elem_type;
 
-    typedef std::vector<std::pair<size_type, elem_type>> list_type; // position ("column number") + value
+    // input type (collection of valued universe members)
+    typedef std::vector<std::pair<size_type, elem_type>> list_type;
 
     virtual ~RowTree() { }
 
+    // returns the size of the universe (length of the "row", n)
     virtual size_type getLength() = 0;
 
+    // returns the null element
     virtual elem_type getNull() = 0;
 
 
+    // checks whether i is in S
     virtual bool isNotNull(size_type i) = 0;
 
+    // returns the value of i, if the element is in S, null otherwise
     virtual elem_type getElement(size_type i) = 0;
 
+    // returns the smallest (left-most) element in S, or a value >= n if S is empty
     virtual size_type getFirst() = 0;
 
+    // returns the values of all elements i in S with l <= i <= r
     virtual std::vector<elem_type> getElementsInRange(size_type l, size_type r) = 0;
 
+    // returns the positions of all elements i in S with l <= i <= r
     virtual std::vector<size_type> getPositionsInRange(size_type l, size_type r) = 0;
 
+    // returns the positions and values of all elements i in S with l <= i <= r
     virtual list_type getValuedPositionsInRange(size_type l, size_type r) = 0;
 
+    // returns the values of all elements in S
     virtual std::vector<elem_type> getAllElements() = 0;
 
+    // returns the positions of all elements in S
     virtual std::vector<size_type> getAllPositions() = 0;
 
+    // returns the positions and values of all elements in S
     virtual list_type getAllValuedPositions() = 0;
 
+    // checks whether S contains an element i with l <= i <= r
     virtual bool containsElement(size_type l, size_type r) = 0;
 
+    // counts the number of elements in S
     virtual size_type countElements() = 0;
 
 
+    // creates a deep copy
     virtual RowTree* clone() const = 0;
 
+    // prints the parameters (and contents) of the RowTree
     virtual void print(bool all = false) = 0;
 
+    // compares the RowTree with a given vector representation
     virtual bool compare(std::vector<elem_type>& v, elem_type null, bool silent) {
 
         bool overallEqual = true;
@@ -252,6 +302,7 @@ public:
 
     }
 
+    // compares the RowTree with another RowTree
     virtual bool compare(RowTree<elem_type>& other, bool silent) {
 
         bool overallEqual = true;
@@ -423,6 +474,7 @@ public:
 
     }
 
+    // sets the value of element i to null, i.e. removes it from the set
     virtual void setNull(size_type i) = 0;
 
 };

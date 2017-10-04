@@ -1,3 +1,24 @@
+/*
+ * Copyright (C) 2017 Robert Mueller
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ * Contact: Robert Mueller <romueller@techfak.uni-bielefeld.de>
+ * Faculty of Technology, Bielefeld University,
+ * PO box 100131, DE-33501 Bielefeld, Germany
+ */
+
 #ifndef K2TREES_STATICROWTREE_HPP
 #define K2TREES_STATICROWTREE_HPP
 
@@ -6,6 +27,13 @@
 #include "RowTree.hpp"
 #include "Utility.hpp"
 
+/**
+ * Simplest implementation of RowTree.
+ *
+ * Uses the same arity (k) on all levels and the described universe
+ * has a size of nPrime, where nPrime is the smallest power of k
+ * that exceeds the positions of all elements.
+ */
 template<typename E>
 class BasicRowTree : public virtual RowTree<E> {
 
@@ -52,6 +80,9 @@ public:
 
     }
 
+    /**
+     * Vector-based constructor (similar to the matrix-based one of K2Tree)
+     */
     BasicRowTree(const std::vector<elem_type>& v, const size_type k, const elem_type null = elem_type()) {
 
         null_ = null;
@@ -82,6 +113,11 @@ public:
 
     }
 
+    /**
+     * List-based constructor (similar to the list-of-lists-based one of K2Tree)
+     *
+     * The actually used method depends on parameter mode.
+     */
     BasicRowTree(const list_type& list, const size_type k, const int mode, const elem_type null = elem_type()) {
 
         null_ = null;
@@ -154,6 +190,9 @@ public:
 
     }
 
+    /**
+     * List-of-pairs-based constructor (similar to the list-of-pairs-based one of K2Tree)
+     */
     BasicRowTree(list_type& pairs, const size_type k, const elem_type null = elem_type()) {
 
         null_ = null;
@@ -176,10 +215,12 @@ public:
     }
 
 
+    // returns the height of the RowTree
     size_type getH() {
         return h_;
     }
 
+    // returns the arity of the RowTree
     size_type getK() {
         return k_;
     }
@@ -199,11 +240,6 @@ public:
 
     elem_type getElement(size_type i) override {
         return getInit(i);
-    }
-
-    size_type getFirst() override {
-//        return getFirstInit();
-        return getFirstIterative();
     }
 
     std::vector<elem_type> getElementsInRange(size_type l, size_type r) override {
@@ -281,7 +317,6 @@ public:
         return new BasicRowTree<elem_type>(*this);
     }
 
-
     void print(bool all = false) override {
 
         std::cout << "### Parameters ###" << std::endl;
@@ -308,23 +343,33 @@ public:
 
     }
 
-
-    // note: can "invalidate" the data structure (containsLink() probably won't work correctly afterwards)
+    // note: can "invalidate" the data structure (containsElement() probably won't work correctly afterwards)
     void setNull(size_type i) override {
         setInit(i);
     }
 
+    size_type getFirst() override {
+//        return getFirstInit();
+        return getFirstIterative();
+    }
+
+
 
 private:
+    // representation of all but the last levels of the RowTree (internal structure)
     bit_vector_type T_;
+
+    // representation of the last level of the RowTree (actual values of the universe)
     std::vector<elem_type> L_;
+
+    // rank data structure for navigation in T_
     rank_type R_;
 
-    size_type k_;
-    size_type h_;
-    size_type nPrime_;
+    size_type k_; // arity of the RowTree
+    size_type h_; // height of the RowTree
+    size_type nPrime_; // size of the represented universe
 
-    elem_type null_;
+    elem_type null_; // null element
 
 
     /* helper method for construction from vector */
@@ -1284,6 +1329,13 @@ private:
 
 };
 
+
+/**
+ * Bool specialisation of BasicRowTree.
+ *
+ * Has the same characteristics as the general implementation above,
+ * but makes use of some simplifications since the only non-null value is 1 / true.
+ */
 template<>
 class BasicRowTree<bool> : public virtual RowTree<bool> {
 
@@ -1330,6 +1382,9 @@ public:
 
     }
 
+    /**
+     * Vector-based constructor (similar to the matrix-based one of K2Tree)
+     */
     BasicRowTree(const bit_vector_type& v, const size_type k) {
 
         null_ = false;
@@ -1365,6 +1420,11 @@ public:
 
     }
 
+    /**
+     * List-based constructor (similar to the list-of-lists-based one of K2Tree)
+     *
+     * The actually used method depends on parameter mode.
+     */
     BasicRowTree(const list_type& list, const size_type k, const int mode) {
 
         null_ = false;
@@ -1442,6 +1502,9 @@ public:
 
     }
 
+    /**
+     * List-of-pairs-based constructor (similar to the list-of-pairs-based one of K2Tree)
+     */
     BasicRowTree(list_type& pairs, const size_type k) {
 
         null_ = false;
@@ -1463,6 +1526,9 @@ public:
 
     }
 
+    /**
+     * List-of-pairs-based constructor similar to the one above, but only a part of the universe is used.
+     */
     BasicRowTree(const std::vector<std::pair<size_type, size_type>>::iterator& first, const std::vector<std::pair<size_type, size_type>>::iterator& last, const size_type k) {
 
         null_ = false;
@@ -1485,10 +1551,12 @@ public:
     }
 
 
+    // returns the height of the RowTree
     size_type getH() {
         return h_;
     }
 
+    // returns the arity of the RowTree
     size_type getK() {
         return k_;
     }
@@ -1508,11 +1576,6 @@ public:
 
     elem_type getElement(size_type i) override {
         return isNotNull(i);
-    }
-
-    size_type getFirst() override {
-//        return getFirstInit();
-        return getFirstIterative();
     }
 
     std::vector<elem_type> getElementsInRange(size_type l, size_type r) override {
@@ -1585,7 +1648,6 @@ public:
         return new BasicRowTree<elem_type>(*this);
     }
 
-
     void print(bool all = false) override {
 
         std::cout << "### Parameters ###" << std::endl;
@@ -1612,23 +1674,33 @@ public:
 
     }
 
-
-    // note: can "invalidate" the data structure (containsLink() probably won't work correctly afterwards)
+    // note: can "invalidate" the data structure (containsElement() probably won't work correctly afterwards)
     void setNull(size_type i) override {
         setInit(i);
     }
 
+    size_type getFirst() override {
+//        return getFirstInit();
+        return getFirstIterative();
+    }
+
+
 
 private:
+    // representation of all but the last levels of the RowTree (internal structure)
     bit_vector_type T_;
+
+    // representation of the last level of the RowTree (actual values of the universe)
     bit_vector_type L_;
+
+    // rank data structure for navigation in T_
     rank_type R_;
 
-    size_type k_;
-    size_type h_;
-    size_type nPrime_;
+    size_type k_; // arity of the RowTree
+    size_type h_; // height of the RowTree
+    size_type nPrime_; // size of the represented universe
 
-    elem_type null_;
+    elem_type null_; // null element
 
     /* helper method for construction from vector */
 
@@ -2306,7 +2378,7 @@ private:
 
     }
 
-    /* linkInRange() */
+    /* containsElements() */
 
     bool elemInRangeInit(size_type l, size_type r) {
 

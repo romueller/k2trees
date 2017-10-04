@@ -1,3 +1,24 @@
+/*
+ * Copyright (C) 2017 Robert Mueller
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ * Contact: Robert Mueller <romueller@techfak.uni-bielefeld.de>
+ * Faculty of Technology, Bielefeld University,
+ * PO box 100131, DE-33501 Bielefeld, Germany
+ */
+
 #ifndef K2TREES_UTILITY_HPP
 #define K2TREES_UTILITY_HPP
 
@@ -12,6 +33,9 @@ typedef unsigned long size_type;
 typedef sdsl::bit_vector bit_vector_type;
 typedef sdsl::rank_support_v<> rank_type;
 
+/**
+ * Position in a matrix plus an associated weight / value of type T.
+ */
 template<typename T>
 struct ValuedPosition {
 
@@ -45,11 +69,15 @@ struct ValuedPosition {
 
 };
 
+/**
+ * Collection of partition-related information used in
+ * K2Tree-implementations such as UnevenKrKcTree.
+ */
 struct PartitionIndices {
 
-    size_type partition;
-    size_type row;
-    size_type col;
+    size_type partition; // number / index of the partition
+    size_type row; // relative row in the partition
+    size_type col; // relative column in the partition
 
     PartitionIndices() {
         // nothing to do
@@ -66,11 +94,13 @@ struct PartitionIndices {
 };
 
 
-// parameters handed over in iterative versions of getting all positions in a row
+/**
+ * Parameters handed over in iterative versions of getting all positions in a row.
+ */
 struct SubrowInfo {
 
-    size_type dq;
-    size_type z;
+    size_type dq; // relative column number (on this level)
+    size_type z; // index in (conceptual concatenation of) T and L
 
     SubrowInfo(size_type dqq, size_type zz) {
 
@@ -81,15 +111,17 @@ struct SubrowInfo {
 
 };
 
-// parameters handed over in iterative versions of getting first positions in a row
+/**
+ * Parameters handed over in iterative versions of getting first positions in a row.
+ */
 struct ExtendedSubrowInfo {
 
-    size_type nr;
-    size_type nc;
-    size_type p;
-    size_type dq;
-    size_type z;
-    size_type j;
+    size_type nr; // number of rows (on this level)
+    size_type nc; // number of columns (on this level)
+    size_type p; // relative row number (on this level)
+    size_type dq; // relative column number (on this level)
+    size_type z; // index in (conceptual concatenation of) T and L
+    size_type j; // "child number" (maximum depends on arity)
 
     ExtendedSubrowInfo(size_type nrr, size_type ncc, size_type pp, size_type dqq, size_type zz, size_type jj) {
 
@@ -104,17 +136,20 @@ struct ExtendedSubrowInfo {
 
 };
 
+// helper method for computation of log_k(n)
+size_type logK(const size_type n, const size_type k);
 
-size_type logK(const size_type n, const size_type b);
-
+// helper method for checking whether all elements of a vector have a certain value
 template<typename T>
 bool isAll(const std::vector<T>& v, const T val) {
     return std::all_of(v.begin(), v.end(), [&val](const T& elem) {return val == elem;});
 }
 
+// helper methods for checking whether all bits are zero
 bool isAllZero(const std::vector<bool>& v);
 bool isAllZero(const bit_vector_type& v);
 
+// helper method for printing contents of a rank data structure
 void printRanks(const rank_type& r);
 
 
@@ -299,6 +334,7 @@ RelationLists boolPairsToList(RelationPairs& pairs, size_type numRows);
 
 RelationLists boolPairsToList(RelationPairs& pairs);
 
+/* Helper methods on matrices that mirror the K2Tree interface for comparison / debugging purposes */
 
 template<typename F, typename S>
 struct sortPairs {

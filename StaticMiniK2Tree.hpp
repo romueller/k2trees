@@ -1,9 +1,35 @@
+/*
+ * Copyright (C) 2017 Robert Mueller
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ * Contact: Robert Mueller <romueller@techfak.uni-bielefeld.de>
+ * Faculty of Technology, Bielefeld University,
+ * PO box 100131, DE-33501 Bielefeld, Germany
+ */
+
 #ifndef K2TREES_STATICMINIK2TREE_HPP
 #define K2TREES_STATICMINIK2TREE_HPP
 
 #include "K2Tree.hpp"
 #include "Utility.hpp"
 
+/**
+ * Naive implementation of a relation matrix with a K2Tree interface for very small relations.
+ *
+ * Simply contains a list of the relation pairs.
+ */
 template<typename E>
 class MiniK2Tree : public virtual K2Tree<E> {
 
@@ -62,7 +88,11 @@ public:
 
     }
 
-    // assumes that all rows of mat are equally long
+    /**
+     * Matrix-based constructor
+     *
+     * Assumes that all rows of mat are equally long.
+     */
     MiniK2Tree(const matrix_type& mat, const elem_type null = elem_type()) {
 
         null_ = null;
@@ -93,6 +123,9 @@ public:
 
     }
 
+    /**
+     * List-of-lists-based constructor
+     */
     MiniK2Tree(const std::vector<list_type>& lists, const elem_type null = elem_type()) {
 
         null_ = null;
@@ -117,6 +150,9 @@ public:
 
     }
 
+    /**
+     * List-of-pairs-based constructor
+     */
     MiniK2Tree(pairs_type& pairs, const elem_type null = elem_type()) {
 
         null_ = null;
@@ -135,6 +171,11 @@ public:
 
     }
 
+    /**
+     * List-of-pairs-based constructor similar to the one above, but only a part of the relation matrix is used.
+     *
+     * Internally, only positions relative to row x and column y are used.
+     */
     MiniK2Tree(const typename pairs_type::iterator& first, const typename pairs_type::iterator& last, const size_type x, const size_type y, const elem_type null = elem_type()) {
 
         null_ = null;
@@ -362,7 +403,6 @@ public:
         return new MiniK2Tree<elem_type>(*this);
     }
 
-
     void print(bool all = false) override {
 
         std::cout << "### Parameters ###" << std::endl;
@@ -382,49 +422,8 @@ public:
 
     }
 
-
-    // method aliases using "relation nomenclature"
-
-    bool areRelated(size_type i, size_type j) override {
-        return isNotNull(i, j);
-    }
-
-    std::vector<size_type> getSuccessors(size_type i) override {
-        return getSuccessorPositions(i);
-    }
-
-    size_type getFirstSuccessor(size_type i) override {
-
-        size_type min = getNumCols();
-        for (size_type k = 0; k < length_; k++) {
-            if (positions_[k].first == i) {
-                min = std::min(min, positions_[k].second);
-            }
-        }
-
-        return min;
-
-    }
-
-    std::vector<size_type> getPredecessors(size_type j) override {
-        return getPredecessorPositions(j);
-    }
-
-    positions_type getRange(size_type i1, size_type i2, size_type j1, size_type j2) override {
-        return getPositionsInRange(i1, i2, j1, j2);
-    }
-
-    bool containsLink(size_type i1, size_type i2, size_type j1, size_type j2) override {
-        return containsElement(i1, i2, j1, j2);
-    }
-
-    size_type countLinks() override {
-        return countElements();
-    }
-
-
     // note: can "invalidate" the data structure (containsLink() probably won't work correctly afterwards)
-    void setNull(size_type i, size_type j) {
+    void setNull(size_type i, size_type j) override {
 
         auto iter = std::find_if(positions_, positions_ + length_,
                                  [i, j](const std::pair<size_type, size_type>& val) {
@@ -461,16 +460,66 @@ public:
 
     }
 
+    size_type getFirstSuccessor(size_type i) override {
+
+        size_type min = getNumCols();
+        for (size_type k = 0; k < length_; k++) {
+            if (positions_[k].first == i) {
+                min = std::min(min, positions_[k].second);
+            }
+        }
+
+        return min;
+
+    }
+
+
+    /*
+     * Method aliases using "relation nomenclature" (similar to the names proposed by Brisaboa et al.)
+     */
+
+    bool areRelated(size_type i, size_type j) override {
+        return isNotNull(i, j);
+    }
+
+    std::vector<size_type> getSuccessors(size_type i) override {
+        return getSuccessorPositions(i);
+    }
+
+    std::vector<size_type> getPredecessors(size_type j) override {
+        return getPredecessorPositions(j);
+    }
+
+    positions_type getRange(size_type i1, size_type i2, size_type j1, size_type j2) override {
+        return getPositionsInRange(i1, i2, j1, j2);
+    }
+
+    bool containsLink(size_type i1, size_type i2, size_type j1, size_type j2) override {
+        return containsElement(i1, i2, j1, j2);
+    }
+
+    size_type countLinks() override {
+        return countElements();
+    }
+
+
 
 private:
-    std::pair<size_type, size_type>* positions_;
-    elem_type* values_;
+    std::pair<size_type, size_type>* positions_; // positions of all relation pairs
+    elem_type* values_; // values of all relation pairs
 
-    size_type length_;
-    elem_type null_;
+    size_type length_; // number of relation pairs
+    elem_type null_; // null element
 
 };
 
+
+/**
+ * Bool specialisation of MiniK2Tree.
+ *
+ * Has the same characteristics as the general implementation above,
+ * but makes use of some simplifications since the only non-null value is 1 / true.
+ */
 template<>
 class MiniK2Tree<bool> : public virtual K2Tree<bool> {
 
@@ -516,7 +565,11 @@ public:
 
     }
 
-    // assumes that all rows of mat are equally long
+    /**
+     * Matrix-based constructor
+     *
+     * Assumes that all rows of mat are equally long.
+     */
     MiniK2Tree(const matrix_type& mat) {
 
         length_ = 0;
@@ -541,6 +594,9 @@ public:
 
     }
 
+    /**
+     * List-of-lists-based constructor
+     */
     MiniK2Tree(const std::vector<list_type>& lists) {
 
         length_ = 0;
@@ -559,6 +615,9 @@ public:
 
     }
 
+    /**
+     * List-of-pairs-based constructor
+     */
     MiniK2Tree(positions_type& pairs) {
 
         length_ = pairs.size();
@@ -571,18 +630,11 @@ public:
 
     }
 
-    MiniK2Tree(const positions_type::iterator& first, const positions_type::iterator& last) {
-
-        length_ = last - first;
-        positions_ = new std::pair<size_type, size_type>[length_];
-
-        size_type pos = 0;
-        for (auto iter = first; iter != last; iter++) {
-            positions_[pos++] = *iter;
-        }
-
-    }
-
+    /**
+     * List-of-pairs-based constructor similar to the one above, but only a part of the relation matrix is used.
+     *
+     * Internally, only positions relative to row x and column y are used.
+     */
     MiniK2Tree(const positions_type::iterator& first, const positions_type::iterator& last, const size_type x, const size_type y) {
 
         length_ = last - first;
@@ -802,7 +854,6 @@ public:
         return new MiniK2Tree<elem_type>(*this);
     }
 
-
     void print(bool all = false) override {
 
         std::cout << "### Parameters ###" << std::endl;
@@ -822,49 +873,8 @@ public:
 
     }
 
-
-    // method aliases using "relation nomenclature"
-
-    bool areRelated(size_type i, size_type j) override {
-        return isNotNull(i, j);
-    }
-
-    std::vector<size_type> getSuccessors(size_type i) override {
-        return getSuccessorPositions(i);
-    }
-
-    size_type getFirstSuccessor(size_type i) override {
-
-        size_type min = getNumCols();
-        for (size_type k = 0; k < length_; k++) {
-            if (positions_[k].first == i) {
-                min = std::min(min, positions_[k].second);
-            }
-        }
-
-        return min;
-
-    }
-
-    std::vector<size_type> getPredecessors(size_type j) override {
-        return getPredecessorPositions(j);
-    }
-
-    positions_type getRange(size_type i1, size_type i2, size_type j1, size_type j2) override {
-        return getPositionsInRange(i1, i2, j1, j2);
-    }
-
-    bool containsLink(size_type i1, size_type i2, size_type j1, size_type j2) override {
-        return containsElement(i1, i2, j1, j2);
-    }
-
-    size_type countLinks() override {
-        return countElements();
-    }
-
-
     // note: can "invalidate" the data structure (containsLink() probably won't work correctly afterwards)
-    void setNull(size_type i, size_type j) {
+    void setNull(size_type i, size_type j) override {
 
         auto iter = std::find_if(positions_, positions_ + length_,
                                  [i, j](const std::pair<size_type, size_type>& val) {
@@ -896,10 +906,53 @@ public:
 
     }
 
+    size_type getFirstSuccessor(size_type i) override {
+
+        size_type min = getNumCols();
+        for (size_type k = 0; k < length_; k++) {
+            if (positions_[k].first == i) {
+                min = std::min(min, positions_[k].second);
+            }
+        }
+
+        return min;
+
+    }
+
+
+    /*
+     * Method aliases using "relation nomenclature" (similar to the names proposed by Brisaboa et al.)
+     */
+
+    bool areRelated(size_type i, size_type j) override {
+        return isNotNull(i, j);
+    }
+
+    std::vector<size_type> getSuccessors(size_type i) override {
+        return getSuccessorPositions(i);
+    }
+
+    std::vector<size_type> getPredecessors(size_type j) override {
+        return getPredecessorPositions(j);
+    }
+
+    positions_type getRange(size_type i1, size_type i2, size_type j1, size_type j2) override {
+        return getPositionsInRange(i1, i2, j1, j2);
+    }
+
+    bool containsLink(size_type i1, size_type i2, size_type j1, size_type j2) override {
+        return containsElement(i1, i2, j1, j2);
+    }
+
+    size_type countLinks() override {
+        return countElements();
+    }
+
+
 
 private:
-    std::pair<size_type, size_type>* positions_;
-    size_type length_;
+    std::pair<size_type, size_type>* positions_; // positions of all relation pairs
+    size_type length_; // number of relation pairs
 
 };
 

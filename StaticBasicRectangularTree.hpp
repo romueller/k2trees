@@ -1,3 +1,24 @@
+/*
+ * Copyright (C) 2017 Robert Mueller
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ * Contact: Robert Mueller <romueller@techfak.uni-bielefeld.de>
+ * Faculty of Technology, Bielefeld University,
+ * PO box 100131, DE-33501 Bielefeld, Germany
+ */
+
 #ifndef K2TREES_STATICBASICRECTANGULARTREE_HPP
 #define K2TREES_STATICBASICRECTANGULARTREE_HPP
 
@@ -6,6 +27,14 @@
 #include "K2Tree.hpp"
 #include "Utility.hpp"
 
+/**
+ * Basic rectangular implementation of K2Tree.
+ *
+ * Uses two different arities for rows and columns (kr, kc) on all levels.
+ * The described relation matrix is rectangular with edge lengths of numRows and numCols,
+ * where numRows (numCols) is the smallest power of kr (kc) that exceeds the row (column) numbers
+ * of all relation pairs.
+ */
 template<typename E>
 class KrKcTree : public virtual K2Tree<E> {
 
@@ -59,7 +88,11 @@ public:
 
     }
 
-    // assumes that all rows of mat are equally long
+    /**
+     * Matrix-based constructor (based on section 3.3.1. of Brisaboa et al.)
+     *
+     * Assumes that all rows of mat are equally long.
+     */
     KrKcTree(const matrix_type& mat, const size_type kr, const size_type kc, const elem_type null = elem_type()) {
 
         null_ = null;
@@ -92,6 +125,13 @@ public:
 
     }
 
+    /**
+     * Matrix-based constructor similar to the one above, but only a part of the relation matrix is used:
+     *  x = first row of the submatrix
+     *  y = first column of the submatrix
+     *  nr = number of rows of the submatrix
+     *  nc = number of columns of the submatrix
+     */
     KrKcTree(const matrix_type& mat, const size_type x, const size_type y, const size_type nr, const size_type nc, const size_type kr, const size_type kc, const elem_type null = elem_type()) {
 
         null_ = null;
@@ -126,6 +166,11 @@ public:
 
     }
 
+    /**
+     * List-of-lists-based constructor (based on sections 3.3.2. - 3.3.4. of Brisaboa et al.)
+     *
+     * The actually used method depends on parameter mode.
+     */
     KrKcTree(const std::vector<list_type>& lists, const size_type kr, const size_type kc, const int mode, const elem_type null = elem_type()) {
 
         null_ = null;
@@ -146,7 +191,7 @@ public:
 
         switch (mode) {
 
-            case 0: {
+            case 0: { // 3.3.2.
 
                 std::vector<std::vector<bool>> levels(h_- 1);
                 std::vector<typename list_type::const_iterator> cursors;
@@ -177,7 +222,7 @@ public:
 
             }
 
-            case 1: {
+            case 1: { // 3.3.3.
 
                 buildFromListsViaTree(lists);
 
@@ -187,7 +232,7 @@ public:
 
             }
 
-            case 2: {
+            case 2: { // 3.3.4.
 
                 buildFromListsDynamicBitmaps(lists);
 
@@ -206,6 +251,13 @@ public:
 
     }
 
+    /**
+     * List-of-lists-based constructor similar to the one above, but only a part of the relation matrix is used:
+     *  x = first row of the submatrix
+     *  y = first column of the submatrix
+     *  nr = number of rows of the submatrix
+     *  nc = number of columns of the submatrix
+     */
     KrKcTree(const std::vector<list_type>& lists, const size_type x, const size_type y, const size_type nr, const size_type nc, const size_type kr, const size_type kc, const int mode, const elem_type null = elem_type()) {
 
         null_ = null;
@@ -220,7 +272,7 @@ public:
 
         switch (mode) {
 
-            case 0: {
+            case 0: { // 3.3.2.
 
                 std::vector<std::vector<bool>> levels(h_- 1);
                 std::vector<typename list_type::const_iterator> cursors;
@@ -257,7 +309,7 @@ public:
 
             }
 
-            case 1: {
+            case 1: { // 3.3.3.
 
                 buildFromListsViaTree(lists, x, y, nr, nc);
 
@@ -267,7 +319,7 @@ public:
 
             }
 
-            case 2: {
+            case 2: { // 3.3.4.
 
                 buildFromListsDynamicBitmaps(lists, x, y, nr, nc);
 
@@ -286,6 +338,9 @@ public:
 
     }
 
+    /**
+     * List-of-pairs-based constructor (based on section 3.3.5. of Brisaboa et al.)
+     */
     KrKcTree(pairs_type& pairs, const size_type kr, const size_type kc, const elem_type null = elem_type()) {
 
         null_ = null;
@@ -312,6 +367,13 @@ public:
 
     }
 
+    /**
+     * List-of-pairs-based constructor similar to the one above, but only a part of the relation matrix is used:
+     *  x = first row of the submatrix
+     *  y = first column of the submatrix
+     *  nr = number of rows of the submatrix
+     *  nc = number of columns of the submatrix
+     */
     KrKcTree(pairs_type& pairs, const size_type x, const size_type y, const size_type nr, const size_type nc, const size_type l, const size_type r, const size_type kr, const size_type kc, const elem_type null = elem_type()) {
 
         null_ = null;
@@ -333,14 +395,17 @@ public:
     }
 
 
+    // returns the height of the K2Tree
     size_type getH() {
         return h_;
     }
 
+    // returns the row arity of the K2Tree
     size_type getKr() {
         return kr_;
     }
 
+    // returns the column arity of the K2Tree
     size_type getKc() {
         return kc_;
     }
@@ -486,7 +551,6 @@ public:
         return new KrKcTree<elem_type>(*this);
     }
 
-
     void print(bool all = false) override {
 
         std::cout << "### Parameters ###" << std::endl;
@@ -515,8 +579,20 @@ public:
 
     }
 
+    // note: can "invalidate" the data structure (containsLink() probably won't work correctly afterwards)
+    void setNull(size_type i, size_type j) override {
+        setInit(i, j);
+    }
 
-    // method aliases using "relation nomenclature"
+    size_type getFirstSuccessor(size_type i) override {
+//        return firstSuccessorInit(i);
+        return firstSuccessorPositionIterative(i);
+    }
+
+
+    /*
+     * Method aliases using "relation nomenclature" (similar to the names proposed by Brisaboa et al.)
+     */
 
     bool areRelated(size_type i, size_type j) override {
         return isNotNull(i, j);
@@ -524,11 +600,6 @@ public:
 
     std::vector<size_type> getSuccessors(size_type i) override {
         return getSuccessorPositions(i);
-    }
-
-    size_type getFirstSuccessor(size_type i) override {
-//        return firstSuccessorInit(i);
-        return firstSuccessorPositionIterative(i);
     }
 
     std::vector<size_type> getPredecessors(size_type j) override {
@@ -548,25 +619,27 @@ public:
     }
 
 
-    // note: can "invalidate" the data structure (containsLink() probably won't work correctly afterwards)
-    void setNull(size_type i, size_type j) override {
-        setInit(i, j);
-    }
-
 
 private:
+    // representation of all but the last levels of the K2Tree (internal structure)
     bit_vector_type T_;
+
+    // representation of the last level of the K2Tree (actual values of the relation)
     std::vector<elem_type> L_;
+
+    // rank data structure for navigation in T_
     rank_type R_;
 
-    size_type h_;
-    size_type kr_;
-    size_type kc_;
-    size_type numRows_;
-    size_type numCols_;
+    size_type h_; // height of the K2Tree
+    size_type kr_; // row arity of the K2Tree
+    size_type kc_; // column arity of the K2Tree
+    size_type numRows_; // number of rows in the represented relation matrix
+    size_type numCols_; // number of columns in the represented relation matrix
 
-    elem_type null_;
+    elem_type null_; // null element
 
+
+    /* helper method to check the feasibility of the tree parameters prior to construction */
 
     void checkParameters(const size_type nr, const size_type nc, const size_type kr, const size_type kc) {
 
@@ -2073,8 +2146,14 @@ private:
 };
 
 
+/**
+ * Bool specialisation of KrKcTree.
+ *
+ * Has the same characteristics as the general implementation above,
+ * but makes use of some simplifications since the only non-null value is 1 / true.
+ */
 template<>
-class KrKcTree<bool> : public virtual K2Tree<bool> {// can handle non-quadratic relation matrices and width / heights that are no power of k
+class KrKcTree<bool> : public virtual K2Tree<bool> {
 
 public:
     typedef bool elem_type;
@@ -2126,7 +2205,11 @@ public:
 
     }
 
-    // assumes that all rows of mat are equally long
+    /**
+     * Matrix-based constructor (based on section 3.3.1. of Brisaboa et al.)
+     *
+     * Assumes that all rows of mat are equally long.
+     */
     KrKcTree(const matrix_type& mat, const size_type kr, const size_type kc) {
 
         null_ = false;
@@ -2164,6 +2247,13 @@ public:
 
     }
 
+    /**
+     * Matrix-based constructor similar to the one above, but only a part of the relation matrix is used:
+     *  x = first row of the submatrix
+     *  y = first column of the submatrix
+     *  nr = number of rows of the submatrix
+     *  nc = number of columns of the submatrix
+     */
     KrKcTree(const matrix_type& mat, const size_type x, const size_type y, const size_type nr, const size_type nc, const size_type kr, const size_type kc) {
 
         null_ = false;
@@ -2203,6 +2293,11 @@ public:
 
     }
 
+    /**
+     * List-of-lists-based constructor (based on sections 3.3.2. - 3.3.4. of Brisaboa et al.)
+     *
+     * The actually used method depends on parameter mode.
+     */
     KrKcTree(const RelationLists& lists, const size_type kr, const size_type kc, const int mode) {
 
         null_ = false;
@@ -2223,7 +2318,7 @@ public:
 
         switch (mode) {
 
-            case 0: {
+            case 0: { // 3.3.2.
 
                 std::vector<std::vector<bool>> levels(h_);
                 std::vector<RelationList::const_iterator> cursors;
@@ -2259,7 +2354,7 @@ public:
 
             }
 
-            case 1: {
+            case 1: { // 3.3.3.
 
                 buildFromListsViaTree(lists);
 
@@ -2269,7 +2364,7 @@ public:
 
             }
 
-            case 2: {
+            case 2: { // 3.3.4.
 
                 buildFromListsDynamicBitmaps(lists);
 
@@ -2288,6 +2383,13 @@ public:
 
     }
 
+    /**
+     * List-of-lists-based constructor similar to the one above, but only a part of the relation matrix is used:
+     *  x = first row of the submatrix
+     *  y = first column of the submatrix
+     *  nr = number of rows of the submatrix
+     *  nc = number of columns of the submatrix
+     */
     KrKcTree(const RelationLists& lists, const size_type x, const size_type y, const size_type nr, const size_type nc, const size_type kr, const size_type kc, const int mode) {
 
         null_ = false;
@@ -2302,7 +2404,7 @@ public:
 
         switch (mode) {
 
-            case 0: {
+            case 0: { // 3.3.2.
 
                 std::vector<std::vector<bool>> levels(h_);
                 std::vector<RelationList::const_iterator> cursors;
@@ -2344,7 +2446,7 @@ public:
 
             }
 
-            case 1: {
+            case 1: { // 3.3.3.
 
                 buildFromListsViaTree(lists, x, y, nr, nc);
 
@@ -2354,7 +2456,7 @@ public:
 
             }
 
-            case 2: {
+            case 2: { // 3.3.4.
 
                 buildFromListsDynamicBitmaps(lists, x, y, nr, nc);
 
@@ -2373,6 +2475,9 @@ public:
 
     }
 
+    /**
+     * List-of-pairs-based constructor (based on section 3.3.5. of Brisaboa et al.)
+     */
     KrKcTree(positions_type& pairs, const size_type kr, const size_type kc) {
 
         null_ = false;
@@ -2399,6 +2504,13 @@ public:
 
     }
 
+    /**
+     * List-of-pairs-based constructor similar to the one above, but only a part of the relation matrix is used:
+     *  x = first row of the submatrix
+     *  y = first column of the submatrix
+     *  nr = number of rows of the submatrix
+     *  nc = number of columns of the submatrix
+     */
     KrKcTree(positions_type& pairs, const size_type x, const size_type y, const size_type nr, const size_type nc, const size_type l, const size_type r, const size_type kr, const size_type kc) {
 
         null_ = false;
@@ -2420,14 +2532,17 @@ public:
     }
 
 
+    // returns the height of the K2Tree
     size_type getH() {
         return h_;
     }
 
+    // returns the row arity of the K2Tree
     size_type getKr() {
         return kr_;
     }
 
+    // returns the column arity of the K2Tree
     size_type getKc() {
         return kc_;
     }
@@ -2457,11 +2572,6 @@ public:
 
         return succs;
 
-    }
-
-    size_type getFirstSuccessor(size_type i) override {
-//        return firstSuccessorInit(i);
-        return firstSuccessorPositionIterative(i);
     }
 
     std::vector<size_type> getPredecessors(size_type j) override {
@@ -2500,7 +2610,9 @@ public:
     }
 
 
-    // general methods for completeness' sake (are redundant / useless for bool)
+    /*
+     * General methods for completeness' sake (are redundant / useless for bool)
+     */
 
     bool isNotNull(size_type i, size_type j) override {
         return areRelated(i, j);
@@ -2608,7 +2720,6 @@ public:
         return new KrKcTree<elem_type>(*this);
     }
 
-
     void print(bool all = false) override {
 
         std::cout << "### Parameters ###" << std::endl;
@@ -2637,26 +2748,38 @@ public:
 
     }
 
-
     // note: can "invalidate" the data structure (containsLink() probably won't work correctly afterwards)
     void setNull(size_type i, size_type j) override {
         setInit(i, j);
     }
 
+    size_type getFirstSuccessor(size_type i) override {
+//        return firstSuccessorInit(i);
+        return firstSuccessorPositionIterative(i);
+    }
+
+
 
 private:
+    // representation of all but the last levels of the K2Tree (internal structure)
     bit_vector_type T_;
+
+    // representation of the last level of the K2Tree (actual values of the relation)
     bit_vector_type L_;
+
+    // rank data structure for navigation in T_
     rank_type R_;
 
-    size_type h_;
-    size_type kr_;
-    size_type kc_;
-    size_type numRows_;
-    size_type numCols_;
+    size_type h_; // height of the K2Tree
+    size_type kr_; // row arity of the K2Tree
+    size_type kc_; // column arity of the K2Tree
+    size_type numRows_; // number of rows in the represented relation matrix
+    size_type numCols_; // number of columns in the represented relation matrix
 
-    elem_type null_;
+    elem_type null_; // null element
 
+
+    /* helper method to check the feasibility of the tree parameters prior to construction */
 
     void checkParameters(const size_type nr, const size_type nc, const size_type kr, const size_type kc) {
 

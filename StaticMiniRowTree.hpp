@@ -1,3 +1,24 @@
+/*
+ * Copyright (C) 2017 Robert Mueller
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ * Contact: Robert Mueller <romueller@techfak.uni-bielefeld.de>
+ * Faculty of Technology, Bielefeld University,
+ * PO box 100131, DE-33501 Bielefeld, Germany
+ */
+
 #ifndef K2TREES_MINIBASICROWTREE_HPP
 #define K2TREES_MINIBASICROWTREE_HPP
 
@@ -6,6 +27,11 @@
 #include "RowTree.hpp"
 #include "Utility.hpp"
 
+/**
+ * Naive implementation of a universe subset with a RowTree interface for very small subsets.
+ *
+ * Simply contains a list of the elements.
+ */
 template<typename E>
 class MiniRowTree : public virtual RowTree<E> {
 
@@ -61,6 +87,9 @@ public:
 
     }
 
+    /**
+     * Vector-based constructor
+     */
     MiniRowTree(const std::vector<elem_type>& v, const elem_type null = elem_type()) {
 
         null_ = null;
@@ -84,6 +113,9 @@ public:
 
     }
 
+    /**
+     * List-of-pairs-based constructor
+     */
     MiniRowTree(const list_type& list, const elem_type null = elem_type()) {
 
         null_ = null;
@@ -131,17 +163,6 @@ public:
 
     }
 
-    size_type getFirst() override {
-
-        size_type min = -1;
-        for (auto i = 0; i < length_; i++) {
-            min = std::min(min, positions_[i]);
-        }
-
-        return min;
-
-    }
-
     std::vector<elem_type> getElementsInRange(size_type l, size_type r) override {
 
         std::vector<elem_type> elems;
@@ -160,7 +181,7 @@ public:
         std::vector<size_type> positions;
         for (size_type i = 0; i < length_; i++) {
             if (l <= positions_[i] && positions_[i] <= r) {
-                positions.push_back(i);
+                positions.push_back(positions_[i]);
             }
         }
 
@@ -173,7 +194,7 @@ public:
         list_type positions;
         for (size_type i = 0; i < length_; i++) {
             if (l <= positions_[i] && positions_[i] <= r) {
-                positions.push_back(std::make_pair(i, values_[i]));
+                positions.push_back(std::make_pair(positions_[i], values_[i]));
             }
         }
 
@@ -220,8 +241,6 @@ public:
         return new MiniRowTree<elem_type>(*this);
     }
 
-
-
     void print(bool all = false) override {
 
         std::cout << "### Parameters ###" << std::endl;
@@ -241,7 +260,6 @@ public:
         }
 
     }
-
 
     void setNull(size_type i) override {
 
@@ -277,16 +295,35 @@ public:
 
     }
 
+    size_type getFirst() override {
+
+        size_type min = -1;
+        for (auto i = 0; i < length_; i++) {
+            min = std::min(min, positions_[i]);
+        }
+
+        return min;
+
+    }
+
+
 
 private:
-    size_type* positions_;
-    elem_type* values_;
+    size_type* positions_; // positions of all elements
+    elem_type* values_; // values of all elements
 
-    size_type length_;
-    elem_type null_;
+    size_type length_; // number of elements
+    elem_type null_; // null element
 
 };
 
+
+/**
+ * Bool specialisation of MiniRowTree.
+ *
+ * Has the same characteristics as the general implementation above,
+ * but makes use of some simplifications since the only non-null value is 1 / true.
+ */
 template<>
 class MiniRowTree<bool> : public virtual RowTree<bool> {
 
@@ -331,6 +368,9 @@ public:
 
     }
 
+    /**
+     * Vector-based constructor
+     */
     MiniRowTree(const bit_vector_type& v) {
 
         length_ = 0;
@@ -350,6 +390,9 @@ public:
 
     }
 
+    /**
+     * List-of-pairs-based constructor
+     */
     MiniRowTree(const list_type& list) {
 
         length_ = list.size();
@@ -361,6 +404,9 @@ public:
 
     }
 
+    /**
+     * List-of-pairs-based constructor similar to the one above, but only a part of the universe is used.
+     */
     MiniRowTree(const std::vector<std::pair<size_type, size_type>>::iterator& first, const std::vector<std::pair<size_type, size_type>>::iterator& last) {
 
         length_ = last - first;
@@ -394,17 +440,6 @@ public:
         return std::find(positions_, positions_ + length_, i) != positions_ + length_;
     }
 
-    size_type getFirst() override {
-
-        size_type min = -1;
-        for (auto i = 0; i < length_; i++) {
-            min = std::min(min, positions_[i]);
-        }
-
-        return min;
-
-    }
-
     std::vector<elem_type> getElementsInRange(size_type l, size_type r) override {
 
         std::vector<elem_type> elems;
@@ -423,7 +458,7 @@ public:
         std::vector<size_type> positions;
         for (size_type i = 0; i < length_; i++) {
             if (l <= positions_[i] && positions_[i] <= r) {
-                positions.push_back(i);
+                positions.push_back(positions_[i]);
             }
         }
 
@@ -436,7 +471,7 @@ public:
         std::vector<std::pair<size_type, elem_type>> positions;
         for (size_type i = 0; i < length_; i++) {
             if (l <= positions_[i] && positions_[i] <= r) {
-                positions.push_back(std::make_pair(i, true));
+                positions.push_back(std::make_pair(positions_[i], true));
             }
         }
 
@@ -483,8 +518,6 @@ public:
         return new MiniRowTree<elem_type>(*this);
     }
 
-
-
     void print(bool all = false) override {
 
         std::cout << "### Parameters ###" << std::endl;
@@ -500,7 +533,6 @@ public:
         }
 
     }
-
 
     void setNull(size_type i) override {
 
@@ -527,10 +559,22 @@ public:
 
     }
 
+    size_type getFirst() override {
+
+        size_type min = -1;
+        for (auto i = 0; i < length_; i++) {
+            min = std::min(min, positions_[i]);
+        }
+
+        return min;
+
+    }
+
+
 
 private:
-    size_type length_;
-    size_type* positions_;
+    size_type length_; // number of elements
+    size_type* positions_; // positions of all elements
 
 };
 
